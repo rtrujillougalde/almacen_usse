@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Arquitectura del Sistema de Almacén</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f4f4f9; }
+        .container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 50px; }
+        h2 { color: #333; }
+    </style>
+</head>
+<body>
+    <h2>Arquitectura del Sistema: Almacén Eléctrico</h2>
+    <div class="container">
+        <div class="mermaid">
+            graph TD
+                subgraph "SERVIDOR CENTRAL (IP FIJA: 192.168.1.XX)"
+                    DB[(MySQL Database)] -- "Puerto 3306" --> PY[Backend Python / SQLAlchemy]
+                    PY -- "Lógica de Apartados y Reportes" --> PY
+                    APP[App Streamlit / Interfaz] -- "Puerto 8501" --> PY
+                end
+
+                subgraph "RED LOCAL (Wi-Fi / Ethernet)"
+                    PY -- "Servicio Web" --> Router{Router Oficina}
+                end
+
+                subgraph "USUARIOS FINALES (Cualquier dispositivo)"
+                    PC1[PC Almacén] -- "Navegador Web" --> Router
+                    PC2[Laptop Ing. Obra] -- "Navegador Web" --> Router
+                    Tab[Tablet / Móvil] -- "Navegador Web" --> Router
+                end
+
+                style DB fill:#f9f,stroke:#333,stroke-width:2px
+                style PY fill:#bbf,stroke:#333,stroke-width:2px
+                style APP fill:#dfd,stroke:#333,stroke-width:2px
+                style Router fill:#fff4dd,stroke:#d4a017,stroke-dasharray: 5 5
+        </div>
+    </div>
+</body>
+</html>
