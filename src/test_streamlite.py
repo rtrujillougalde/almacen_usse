@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Título de la app
-st.title('Mi primera App con Streamlit')
+st.title('Almacen USSE')
 
 # Un slider para que el usuario elija un número
 numero = st.slider('Selecciona un valor', 0, 100, 50)
