@@ -40,6 +40,7 @@ st.title('Almacén USSE')
 
 if page == "Inventario":
     inventario_main()
+    
 elif page == "Entradas":
     entradas_main()
 
