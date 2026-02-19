@@ -1,13 +1,12 @@
 import streamlit as st
-from sqlalchemy.orm import sessionmaker
-from utils import get_engine, execute_sql_query
+
+from utils import get_session
 from classes import Articulos, StockPuntas
 
 def main():
     st.header("Inventario")
     try:
-        Session = sessionmaker(bind=get_engine())
-        session = Session()
+        session = get_session()
         articulos = session.query(Articulos).all()
         # Convert to list of dicts
         data = [
@@ -27,6 +26,7 @@ def main():
         
         cables = (session.query(
             StockPuntas.id_punta.label("id punta"),
+            StockPuntas.nombre_punta.label("nombre de punta"),
             Articulos.nombre.label("nombre"),
             StockPuntas.longitud.label("longitud"),
             )

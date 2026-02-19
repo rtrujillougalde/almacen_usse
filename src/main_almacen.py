@@ -16,7 +16,7 @@ st.set_page_config(page_title="Almacén USSE", layout="wide")
 
 # Pantalla de inicio de sesión
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_state.logged_in = True
 
 if not st.session_state.logged_in:
     st.title("Iniciar sesión en Almacén USSE")
