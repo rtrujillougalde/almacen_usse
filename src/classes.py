@@ -89,10 +89,10 @@ class Movimientos(Base):
 
 class Proyectos(Base):
     __tablename__ = 'proyectos'
-    id_proyecto = Column(Integer, primary_key=True)
-    c_c = Column(Integer)
-    nombre_obra = Column(String)
-    encargado = Column(String)
+    id_proyecto = Column(Integer, primary_key=True) #project or work identifier
+    c_c = Column(Integer) # Cost center 
+    nombre_obra = Column(String) 
+    encargado = Column(String) 
 
 class StockPuntas(Base):
     __tablename__ = 'stock_puntas'

@@ -15,6 +15,7 @@ categorias = ['albañileria', 'aire_acondicionado', 'aislantes',
                  'registros', 'regletas', 'seguridad', 'soportes', 'tablaroca',
                 'tableros', 'tierras', 'tornilleria', 'zapatas']
 
+unidad_de_medida = ['pza', 'm', 'lt', 'kg']
 
 db_user = st.secrets["mysql"]["user"]
 db_password = st.secrets["mysql"]["password"]
