@@ -25,10 +25,10 @@ def main():
 
         
         cables = (session.query(
-            StockPuntas.id_punta.label("id punta"),
+            
             StockPuntas.nombre_punta.label("nombre de punta"),
             Articulos.nombre.label("nombre"),
-            StockPuntas.longitud.label("longitud"),
+            StockPuntas.longitud.label("longitud")
             )
         .join(StockPuntas, Articulos.id_articulo ==StockPuntas.id_articulo).all()
         )

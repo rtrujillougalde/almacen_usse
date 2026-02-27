@@ -9,8 +9,9 @@ from utils import get_engine, execute_sql_query, db_user, db_password, db_host, 
 from p_entradas import main as entradas_main
 from p_inventario import main as inventario_main
 from p_salidas import main as salidas_main
+from p_proyectos import main as proyectos_main
 
-st.set_page_config(page_title="Almacén USSE", layout="wide")
+st.set_page_config(page_title="Almacén USSE", layout="centered")
 
 
 
@@ -33,7 +34,7 @@ if not st.session_state.logged_in:
 
 # Menú lateral
 st.sidebar.title("Menú")
-page = st.sidebar.radio("Ir a:", ("Inventario", "Entradas", "Salidas"))
+page = st.sidebar.radio("Ir a:", ("Inventario", "Entradas", "Salidas", "Proyectos", "Reportes"))
 
 
 st.title('Almacén USSE')
@@ -46,3 +47,10 @@ elif page == "Entradas":
 
 elif page == "Salidas":
     salidas_main()
+
+elif page == "Proyectos":
+    proyectos_main()
+    st.info("Funcionalidad de Proyectos en desarrollo")
+
+elif page == "Reportes":
+    st.info("Funcionalidad de Reportes en desarrollo")

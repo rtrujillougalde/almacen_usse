@@ -58,6 +58,10 @@ class TipoEnum(enum.Enum):
     material = "material"
     herramienta = "herramienta"
 
+class TipoMovimientoEnum(enum.Enum):
+    entrada = "entrada"
+    salida = "salida"
+
 class Articulos(Base):
     __tablename__ = 'articulos'
     id_articulo= Column(Integer, primary_key=True)
@@ -72,18 +76,18 @@ class Articulos(Base):
     # Add other columns as needed 
 
 class DetalleMovimiento(Base):
-    __tablename__ = 'detalle_movimiento'
+    __tablename__ = 'detalle_movimientos'
     id_detalle = Column(Integer, primary_key=True)
     id_movimiento = Column(Integer, ForeignKey('movimientos.id_movimiento'))
     id_articulo = Column(Integer, ForeignKey('articulos.id_articulo'))
     cantidad = Column(Integer)
-    precio_unitario = Column(Float) # Precio por unidad en el momento del movimiento
+    id_punta = Column(Integer, ForeignKey('stock_puntas.id_punta')) # Precio por unidad en el momento del movimiento
 
 class Movimientos(Base):
     __tablename__ = 'movimientos'
     id_movimiento = Column(Integer, primary_key=True)
     id_proyecto = Column(Integer, ForeignKey('proyectos.id_proyecto')) # Proyecto asociado al movimiento
-    tipo = Column(Enum(TipoEnum)) # 'Entrada' o 'Salida'
+    tipo = Column(Enum(TipoMovimientoEnum)) # 'Entrada' o 'Salida'
     fecha_hora = Column(String) # Fecha del movimiento
     observaciones = Column(String) # Detalles adicionales sobre el movimiento
 
