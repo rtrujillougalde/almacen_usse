@@ -92,7 +92,7 @@ def display_cable_details_form(step=0.1):
 
 def display_quantity_form(key_suffix):
     """Display quantity input for non-cable items."""
-    min_value = 0 if key_suffix == "form_cantidad_input_new" else 1
+    min_value = 0 
     st.session_state.form_cantidad = st.number_input(
         "Cantidad a agregar",
         min_value=min_value,
@@ -157,7 +157,7 @@ def form_entrada(nombres_articulos: list, nombres_cables: list, proyectos_info: 
         'unidad_medida': 'pieza',
         'categoria': '',
         'stock_minimo': 0,
-        'es_cable': 0,
+        'es_cable': False,
         'nombre_punta': '',
         'longitud': 0.0,
         'cantidad': 0,
@@ -216,7 +216,7 @@ def form_entrada(nombres_articulos: list, nombres_cables: list, proyectos_info: 
 
                 col1, col2, col3 = st.columns([3, 1, 1])
                 with col1:
-                    if st.session_state.form_es_cable == True or (articulo and articulo.es_cable !=0)  :
+                    if st.session_state.form_es_cable == True or (articulo and articulo.es_cable)  :
                         st.write(f"{idx + 1}. {item['nombre_item']} - {item['nombre_punta']} - Longitud: {item['longitud']} m")
                     else:
                         st.write(f"{idx + 1}. {item['nombre_item']} - Cantidad: {item['cantidad']}")
@@ -322,7 +322,7 @@ def add_movement_to_db(movement_items: list, id_proyecto: int = None):
                     unidad_medida=item_data['unidad_medida'],
                     categoria=item_data['categoria'],
                     stock_minimo=item_data['stock_minimo'],
-                    es_cable=1 if item_data['es_cable'] else 0,
+                    es_cable= True if item_data['es_cable'] else False,
                     cantidad_en_stock=item_data['cantidad'] if not item_data['es_cable'] else item_data['longitud']
                 )
                 session.add(articulo)
@@ -390,7 +390,7 @@ def fetch_initial_data():
         nombres_articulos = [row.nombre for row in session.query(Articulos).all()]
         
         # Fetch cable article names
-        nombres_cables = [row.nombre for row in session.query(Articulos).filter(Articulos.es_cable == 1).all()]
+        nombres_cables = [row.nombre for row in session.query(Articulos).filter(Articulos.es_cable == True).all()]
         
         # Build projects dictionary with ID as key and (nombre_obra, c_c) as value
         proyectos = session.query(Proyectos).all()
@@ -424,7 +424,7 @@ def format_detail_item(detalle, articulo, proyectos_info, entrada):
     proyecto_info = proyectos_info.get(entrada.id_proyecto, ("Sin proyecto", "N/A"))
     
     # Format item name and quantity based on whether it's a cable
-    if articulo.es_cable == 1:
+    if articulo.es_cable:
         punta = session.query(StockPuntas).filter(StockPuntas.id_punta == detalle.id_punta).first()
         
         # Handle case where punta is not found (data integrity check)
