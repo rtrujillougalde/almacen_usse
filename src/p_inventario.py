@@ -6,6 +6,7 @@ Toda la lógica de acceso a datos se delega al módulo data.py.
 """
 
 import streamlit as st
+import pandas as pd
 
 from data import (
     get_all_articulos,
@@ -14,6 +15,10 @@ from data import (
     get_available_cable_puntas,
 )
 
+def highlight_low_stock(row):
+            if row["cantidad en stock"] < row["stock minimo"]:
+                return ["background-color: #ffcccc"] * len(row)
+            return [""] * len(row)
 
 def main():
     """
@@ -27,9 +32,20 @@ def main():
         data = get_all_articulos()
 
         st.subheader("Articulos")
-        edited_data = st.data_editor(
-            data, hide_index=True, use_container_width=True
+
+        df = pd.DataFrame(data)
+
+        
+
+        styled_df = df.style.apply(highlight_low_stock, axis=1).format(
+            {"cantidad en stock": "{:.2f}", "stock minimo": "{:.2f}"}
         )
+        st.dataframe(styled_df, hide_index=True, use_container_width=True)
+
+        with st.expander("Editar artículos"):
+            edited_data = st.data_editor(
+                data, hide_index=True, use_container_width=True
+            )
 
         # Guardar cambios si hubo edición
         if edited_data != data:

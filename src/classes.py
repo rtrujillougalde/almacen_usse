@@ -90,6 +90,7 @@ class Movimientos(Base):
     tipo = Column(Enum(TipoMovimientoEnum)) # 'Entrada' o 'Salida'
     fecha_hora = Column(String) # Fecha del movimiento
     observaciones = Column(String) # Detalles adicionales sobre el movimiento
+    responsable = Column(String) # Persona responsable del movimiento
 
 class Proyectos(Base):
     __tablename__ = 'proyectos'

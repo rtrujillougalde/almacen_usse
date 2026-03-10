@@ -14,8 +14,13 @@ from data import (
     get_all_cc,
     get_entradas_data,
     get_salidas_data,
+    get_comparacion_data,
     create_entradas_pdf,
+    create_entradas_excel,
     create_salidas_pdf,
+    create_salidas_excel,
+    create_comparacion_pdf,
+    create_comparacion_excel,
 )
 
 
@@ -25,8 +30,7 @@ from data import (
 
 def render_filter_section(key_prefix=""):
     """
-    Renderiza la sección de filtros (fechas y centro de costo) y devuelve
-    los valores seleccionados.
+    Renderiza la sección de filtros (centro de costo y opcionalmente fechas).
 
     Args:
         key_prefix (str): Prefijo para las claves de los widgets (evita conflictos).
@@ -37,33 +41,42 @@ def render_filter_section(key_prefix=""):
     """
     ccs = get_all_cc()
 
-    col1, col2, col3 = st.columns(3)
+    cc_seleccionados = st.multiselect(
+        "Centro de Costos (CC)",
+        options=ccs,
+        default=None,
+        help="Selecciona uno o varios CC. Si no seleccionas ninguno, se mostrarán todos.",
+        key=f"{key_prefix}cc_filter",
+    )
 
-    with col1:
-        fecha_inicio = st.date_input(
-            "Fecha de inicio",
-            value=datetime.date(datetime.datetime.now().year, 1, 1),
-            key=f"{key_prefix}fecha_inicio",
-        )
+    filtrar_fechas = st.checkbox(
+        "Filtrar por rango de fechas",
+        value=False,
+        key=f"{key_prefix}filtrar_fechas",
+    )
 
-    with col2:
-        fecha_fin = st.date_input(
-            "Fecha de fin",
-            value=datetime.date.today(),
-            key=f"{key_prefix}fecha_fin",
-        )
+    fecha_inicio = None
+    fecha_fin = None
+    fecha_inicio_str = None
+    fecha_fin_str = None
 
-    with col3:
-        cc_seleccionados = st.multiselect(
-            "Centro de Costos (CC)",
-            options=ccs,
-            default=None,
-            help="Selecciona uno o varios CC. Si no seleccionas ninguno, se mostrarán todos.",
-            key=f"{key_prefix}cc_filter",
-        )
+    if filtrar_fechas:
+        col1, col2 = st.columns(2)
+        with col1:
+            fecha_inicio = st.date_input(
+                "Fecha de inicio",
+                value=datetime.date(datetime.datetime.now().year, 1, 1),
+                key=f"{key_prefix}fecha_inicio",
+            )
+        with col2:
+            fecha_fin = st.date_input(
+                "Fecha de fin",
+                value=datetime.date.today(),
+                key=f"{key_prefix}fecha_fin",
+            )
+        fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
+        fecha_fin_str = fecha_fin.strftime("%Y-%m-%d")
 
-    fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
-    fecha_fin_str = fecha_fin.strftime("%Y-%m-%d")
     cc_filter = cc_seleccionados if cc_seleccionados else None
 
     return (
@@ -76,15 +89,16 @@ def render_filter_section(key_prefix=""):
     )
 
 
-def build_pdf_filename(report_type, fecha_inicio, fecha_fin, cc_seleccionados):
+def build_report_filename(report_type, fecha_inicio, fecha_fin, cc_seleccionados, extension="pdf"):
     """
-    Construye el nombre del archivo PDF con el rango de fechas y centros de costo.
+    Construye el nombre del archivo con el rango de fechas y centros de costo.
 
     Args:
-        report_type (str): Tipo de reporte ('entradas' o 'salidas').
+        report_type (str): Tipo de reporte ('entradas', 'salidas', 'comparativo').
         fecha_inicio: Objeto date de inicio.
         fecha_fin: Objeto date de fin.
         cc_seleccionados (list): Lista de centros de costo seleccionados.
+        extension (str): Extensión del archivo ('pdf' o 'xlsx').
 
     Returns:
         str: Nombre del archivo formateado.
@@ -92,10 +106,12 @@ def build_pdf_filename(report_type, fecha_inicio, fecha_fin, cc_seleccionados):
     cc_str = (
         f"_cc_{'_'.join(map(str, cc_seleccionados))}" if cc_seleccionados else ""
     )
-    return (
-        f"reporte_{report_type}_{fecha_inicio.strftime('%d%m%Y')}"
-        f"_a_{fecha_fin.strftime('%d%m%Y')}{cc_str}.pdf"
+    fecha_str = (
+        f"_{fecha_inicio.strftime('%d%m%Y')}_a_{fecha_fin.strftime('%d%m%Y')}"
+        if fecha_inicio and fecha_fin
+        else ""
     )
+    return f"reporte_{report_type}{fecha_str}{cc_str}.{extension}"
 
 
 def create_preview_dataframe_entradas(entradas_data):
@@ -141,7 +157,7 @@ def create_preview_dataframe_salidas(salidas_data):
                 f"{nombre_punta} ({longitud}m)" if longitud else nombre_punta
             )
         else:
-            detalle = f"{cantidad} unidades"
+            detalle = f"{cantidad}"
 
         preview_df.append({
             "Fecha/Hora": fecha_hora,
@@ -153,48 +169,58 @@ def create_preview_dataframe_salidas(salidas_data):
     return pd.DataFrame(preview_df)
 
 
-def display_report_results(entradas_data, pdf_buffer, file_name):
+def display_report_results(entradas_data, pdf_buffer, excel_buffer, pdf_name, excel_name):
     """
-    Muestra el botón de descarga del PDF y la vista previa de datos de entradas.
-
-    Args:
-        entradas_data (list[tuple]): Datos de entradas.
-        pdf_buffer (BytesIO): Buffer con el contenido del PDF.
-        file_name (str): Nombre para el archivo PDF descargable.
+    Muestra los botones de descarga (PDF y Excel) y la vista previa de datos de entradas.
     """
     st.success(f"Se encontraron {len(entradas_data)} registros de entrada")
 
-    st.download_button(
-        label="⬇️ Descargar Reporte de Entradas",
-        data=pdf_buffer,
-        file_name=file_name,
-        mime="application/pdf",
-        key="download_entradas",
-    )
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button(
+            label="📄 Descargar PDF",
+            data=pdf_buffer,
+            file_name=pdf_name,
+            mime="application/pdf",
+            key="download_entradas_pdf",
+        )
+    with col2:
+        st.download_button(
+            label="📊 Descargar Excel",
+            data=excel_buffer,
+            file_name=excel_name,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_entradas_excel",
+        )
 
     st.subheader("Vista previa de datos")
     preview_df = create_preview_dataframe_entradas(entradas_data)
     st.dataframe(preview_df, use_container_width=True)
 
 
-def display_salida_report_results(salidas_data, pdf_buffer, file_name):
+def display_salida_report_results(salidas_data, pdf_buffer, excel_buffer, pdf_name, excel_name):
     """
-    Muestra el botón de descarga del PDF y la vista previa de datos de salidas.
-
-    Args:
-        salidas_data (list[tuple]): Datos de salidas.
-        pdf_buffer (BytesIO): Buffer con el contenido del PDF.
-        file_name (str): Nombre para el archivo PDF descargable.
+    Muestra los botones de descarga (PDF y Excel) y la vista previa de datos de salidas.
     """
     st.success(f"Se encontraron {len(salidas_data)} registros de salida")
 
-    st.download_button(
-        label="⬇️ Descargar Reporte de Salidas",
-        data=pdf_buffer,
-        file_name=file_name,
-        mime="application/pdf",
-        key="download_salidas",
-    )
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button(
+            label="📄 Descargar PDF",
+            data=pdf_buffer,
+            file_name=pdf_name,
+            mime="application/pdf",
+            key="download_salidas_pdf",
+        )
+    with col2:
+        st.download_button(
+            label="📊 Descargar Excel",
+            data=excel_buffer,
+            file_name=excel_name,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_salidas_excel",
+        )
 
     st.subheader("Vista previa de datos")
     preview_df = create_preview_dataframe_salidas(salidas_data)
@@ -238,10 +264,14 @@ def main():
 
         if entradas_data:
             pdf_buffer = create_entradas_pdf(entradas_data)
-            file_name = build_pdf_filename(
-                "entradas", fecha_inicio, fecha_fin, cc_seleccionados
+            excel_buffer = create_entradas_excel(entradas_data)
+            pdf_name = build_report_filename(
+                "entradas", fecha_inicio, fecha_fin, cc_seleccionados, "pdf"
             )
-            display_report_results(entradas_data, pdf_buffer, file_name)
+            excel_name = build_report_filename(
+                "entradas", fecha_inicio, fecha_fin, cc_seleccionados, "xlsx"
+            )
+            display_report_results(entradas_data, pdf_buffer, excel_buffer, pdf_name, excel_name)
         else:
             st.warning(
                 "No se encontraron registros de entrada en el rango de fechas especificado."
@@ -270,10 +300,6 @@ def reporte_salidas_main():
     ) = render_filter_section(key_prefix="salidas_")
 
     if st.button("Generar Reporte de Salidas", key="salidas_pdf"):
-        fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
-        fecha_fin_str = fecha_fin.strftime("%Y-%m-%d")
-        cc_filter = cc_seleccionados if cc_seleccionados else None
-
         with st.spinner("Obteniendo datos de salidas..."):
             try:
                 salidas_data = get_salidas_data(
@@ -285,13 +311,98 @@ def reporte_salidas_main():
 
         if salidas_data:
             pdf_buffer = create_salidas_pdf(salidas_data)
-            file_name = build_pdf_filename(
-                "salidas", fecha_inicio, fecha_fin, cc_seleccionados
+            excel_buffer = create_salidas_excel(salidas_data)
+            pdf_name = build_report_filename(
+                "salidas", fecha_inicio, fecha_fin, cc_seleccionados, "pdf"
             )
-            display_salida_report_results(salidas_data, pdf_buffer, file_name)
+            excel_name = build_report_filename(
+                "salidas", fecha_inicio, fecha_fin, cc_seleccionados, "xlsx"
+            )
+            display_salida_report_results(salidas_data, pdf_buffer, excel_buffer, pdf_name, excel_name)
         else:
             st.warning(
                 "No se encontraron registros de salida en el rango de fechas especificado."
+            )
+
+
+def reporte_comparacion_main():
+    """
+    Función principal del reporte comparativo entradas vs salidas.
+    Muestra filtros de fecha/CC, genera el PDF y ofrece descarga.
+    """
+    st.title("📊 Reporte Comparativo - Almacén USSE")
+    st.subheader("Entradas vs Salidas por Centro de Costo")
+    st.info(
+        "Este reporte compara los materiales y herramientas que entraron "
+        "contra los que salieron para un mismo centro de costos, "
+        "mostrando el porcentaje de uso real."
+    )
+
+    (
+        fecha_inicio_str,
+        fecha_fin_str,
+        cc_filter,
+        fecha_inicio,
+        fecha_fin,
+        cc_seleccionados,
+    ) = render_filter_section(key_prefix="comparacion_")
+
+    if st.button("Generar Reporte Comparativo", key="comparacion_pdf"):
+        with st.spinner("Obteniendo datos comparativos..."):
+            try:
+                comparacion_data = get_comparacion_data(
+                    fecha_inicio_str, fecha_fin_str, cc_filter=cc_filter
+                )
+            except Exception as e:
+                st.error(f"Error al obtener datos: {e}")
+                return
+
+        if comparacion_data:
+            pdf_buffer = create_comparacion_pdf(comparacion_data)
+            excel_buffer = create_comparacion_excel(comparacion_data)
+            pdf_name = build_report_filename(
+                "comparativo", fecha_inicio, fecha_fin, cc_seleccionados, "pdf"
+            )
+            excel_name = build_report_filename(
+                "comparativo", fecha_inicio, fecha_fin, cc_seleccionados, "xlsx"
+            )
+
+            st.success(
+                f"Se encontraron {len(comparacion_data)} materiales/herramientas para comparar"
+            )
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="📄 Descargar PDF",
+                    data=pdf_buffer,
+                    file_name=pdf_name,
+                    mime="application/pdf",
+                    key="download_comparacion_pdf",
+                )
+            with col2:
+                st.download_button(
+                    label="📊 Descargar Excel",
+                    data=excel_buffer,
+                    file_name=excel_name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="download_comparacion_excel",
+                )
+
+            st.subheader("Vista previa de datos")
+            preview_df = pd.DataFrame(comparacion_data)
+            preview_df.columns = [
+                "C.C", "Material", "Tipo", "Unidad", "Precio Unit.",
+                "Total Entradas", "Total Salidas",
+                "Diferencia", "Costo Salida",
+            ]
+            st.dataframe(preview_df, use_container_width=True)
+
+            total_costo = sum(i["costo_salida"] for i in comparacion_data)
+            st.metric("Costo Total de material usado", f"${total_costo:,.2f}")
+        else:
+            st.warning(
+                "No se encontraron registros en el rango de fechas especificado."
             )
 
 

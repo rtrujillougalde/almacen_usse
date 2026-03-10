@@ -9,6 +9,7 @@ Todas las funciones de consulta y manipulación de datos están centralizadas aq
 from datetime import datetime
 from io import BytesIO
 
+import pandas as pd
 from sqlalchemy import and_, cast, Date, func
 from sqlalchemy.orm import sessionmaker
 
@@ -46,9 +47,9 @@ def get_all_articulos():
             {
                 "id": a.id_articulo,
                 "nombre": a.nombre,
-                "cantidad en stock": a.cantidad_en_stock,
+                "cantidad en stock": round(a.cantidad_en_stock, 2) if a.cantidad_en_stock is not None else 0.00,
                 "unidad de medida": a.unidad_medida,
-                "stock minimo": a.stock_minimo,
+                "stock minimo": round(a.stock_minimo, 2) if a.stock_minimo is not None else 0.00,
                 "categoria": a.categoria.value if a.categoria else None,
             }
             for a in articulos
@@ -413,7 +414,7 @@ def fetch_initial_data():
         session.close()
 
 
-def add_movement_to_db(movement_items, id_proyecto=None):
+def add_movement_to_db(movement_items, id_proyecto=None, responsable=None):
     """
     Crea un registro de Movimiento tipo 'entrada' y agrega los DetalleMovimiento
     correspondientes. Actualiza el stock de los artículos.
@@ -424,6 +425,7 @@ def add_movement_to_db(movement_items, id_proyecto=None):
             unidad_medida, categoria, stock_minimo, es_cable, nombre_punta,
             longitud, cantidad.
         id_proyecto (int, optional): ID del proyecto asociado al movimiento.
+        responsable (str, optional): Nombre del responsable de la entrada.
 
     Returns:
         bool: True si se registró exitosamente.
@@ -439,6 +441,7 @@ def add_movement_to_db(movement_items, id_proyecto=None):
             tipo="entrada",
             fecha_hora=datetime.now().isoformat(),
             observaciones="",
+            responsable=responsable,
         )
         session.add(movimiento)
         session.commit()
@@ -519,11 +522,12 @@ def add_movement_to_db(movement_items, id_proyecto=None):
         session.close()
 
 
-def get_recent_entrada_movements(limit=5):
+def get_recent_movements(tipo, limit=5):
     """
-    Obtiene los movimientos de entrada más recientes con sus detalles.
+    Obtiene los movimientos más recientes de un tipo dado con sus detalles.
 
     Args:
+        tipo (str): Tipo de movimiento ('entrada' o 'salida').
         limit (int): Cantidad máxima de movimientos a devolver.
 
     Returns:
@@ -532,19 +536,20 @@ def get_recent_entrada_movements(limit=5):
                 'id_movimiento': int,
                 'fecha_hora': str,
                 'id_proyecto': int,
-                'items': [{'item': str, 'cantidad': str/int}]
+                'items': [{'Item': str, 'Cantidad': str/int}],
+                'responsable': str
             }
     """
     session = get_session()
     try:
-        entradas = session.query(Movimientos).filter(
-            Movimientos.tipo == "entrada"
+        movimientos = session.query(Movimientos).filter(
+            Movimientos.tipo == tipo
         ).order_by(Movimientos.fecha_hora.desc()).limit(limit).all()
 
         result = []
-        for entrada in entradas:
+        for mov in movimientos:
             detalles = session.query(DetalleMovimiento).filter(
-                DetalleMovimiento.id_movimiento == entrada.id_movimiento
+                DetalleMovimiento.id_movimiento == mov.id_movimiento
             ).all()
 
             items = []
@@ -558,10 +563,11 @@ def get_recent_entrada_movements(limit=5):
                     )
 
             result.append({
-                "id_movimiento": entrada.id_movimiento,
-                "fecha_hora": entrada.fecha_hora,
-                "id_proyecto": entrada.id_proyecto,
+                "id_movimiento": mov.id_movimiento,
+                "fecha_hora": mov.fecha_hora,
+                "id_proyecto": mov.id_proyecto,
                 "items": items,
+                "responsable": mov.responsable,
             })
 
         return result
@@ -602,7 +608,7 @@ def _format_detail_item(session, detalle, articulo):
 # MOVIMIENTOS - SALIDAS
 # =============================================================================
 
-def add_salida_to_db(movement_items, id_proyecto=None):
+def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
     """
     Crea un registro de Movimiento tipo 'salida' y actualiza el stock.
 
@@ -610,6 +616,7 @@ def add_salida_to_db(movement_items, id_proyecto=None):
         movement_items (list[dict]): Lista de diccionarios con los datos de cada ítem.
             Cada dict contiene: id_articulo, nombre_item, es_cable, cantidad, id_punta.
         id_proyecto (int, optional): ID del proyecto asociado.
+        responsable (str, optional): Nombre del responsable de la salida.
 
     Returns:
         bool: True si se registró exitosamente.
@@ -626,6 +633,7 @@ def add_salida_to_db(movement_items, id_proyecto=None):
             tipo="salida",
             fecha_hora=datetime.now().isoformat(),
             observaciones="",
+            responsable=responsable,
         )
         session.add(movimiento)
         session.commit()
@@ -680,56 +688,6 @@ def add_salida_to_db(movement_items, id_proyecto=None):
     except Exception:
         session.rollback()
         raise
-    finally:
-        session.close()
-
-
-def get_recent_salida_movements(limit=5):
-    """
-    Obtiene los movimientos de salida más recientes con sus detalles.
-
-    Args:
-        limit (int): Cantidad máxima de movimientos a devolver.
-
-    Returns:
-        list[dict]: Lista de diccionarios con la estructura:
-            {
-                'id_movimiento': int,
-                'fecha_hora': str,
-                'id_proyecto': int,
-                'items': [{'Item': str, 'Cantidad': str/int}]
-            }
-    """
-    session = get_session()
-    try:
-        salidas = session.query(Movimientos).filter(
-            Movimientos.tipo == "salida"
-        ).order_by(Movimientos.fecha_hora.desc()).limit(limit).all()
-
-        result = []
-        for salida in salidas:
-            detalles = session.query(DetalleMovimiento).filter(
-                DetalleMovimiento.id_movimiento == salida.id_movimiento
-            ).all()
-
-            items = []
-            for detalle in detalles:
-                articulo = session.query(Articulos).filter(
-                    Articulos.id_articulo == detalle.id_articulo
-                ).first()
-                if articulo:
-                    items.append(
-                        _format_detail_item(session, detalle, articulo)
-                    )
-
-            result.append({
-                "id_movimiento": salida.id_movimiento,
-                "fecha_hora": salida.fecha_hora,
-                "id_proyecto": salida.id_proyecto,
-                "items": items,
-            })
-
-        return result
     finally:
         session.close()
 
@@ -854,6 +812,324 @@ def get_salidas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
 # =============================================================================
 # REPORTES - GENERACIÓN DE PDF
 # =============================================================================
+
+def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
+    """
+    Obtiene datos agrupados de entradas y salidas por artículo para un centro de costo,
+    permitiendo comparar cuánto entró vs cuánto salió.
+
+    Args:
+        fecha_inicio (str, optional): Fecha de inicio 'YYYY-MM-DD'.
+        fecha_fin (str, optional): Fecha de fin 'YYYY-MM-DD'.
+        cc_filter (int | list[int], optional): Centro(s) de costo a filtrar.
+
+    Returns:
+        list[dict]: Lista de diccionarios con campos:
+            c_c, material, tipo, total_entrada, total_salida, diferencia, porcentaje_uso
+    """
+    session = get_session()
+    try:
+        date_filters = []
+        if fecha_inicio and fecha_fin:
+            date_filters = [
+                cast(Movimientos.fecha_hora, Date) >= fecha_inicio,
+                cast(Movimientos.fecha_hora, Date) <= fecha_fin,
+            ]
+
+        cc_filters = []
+        if cc_filter is not None:
+            if isinstance(cc_filter, list):
+                cc_filters = [Proyectos.c_c.in_(cc_filter)]
+            else:
+                cc_filters = [Proyectos.c_c == cc_filter]
+
+        base_query = (
+            session.query(
+                Proyectos.c_c,
+                Articulos.nombre,
+                Articulos.tipo,
+                Articulos.unidad_medida,
+                Articulos.precio_unitario,
+                Movimientos.tipo.label("tipo_movimiento"),
+                func.sum(DetalleMovimiento.cantidad).label("total_cantidad"),
+            )
+            .join(DetalleMovimiento, Movimientos.id_movimiento == DetalleMovimiento.id_movimiento)
+            .join(Articulos, DetalleMovimiento.id_articulo == Articulos.id_articulo)
+            .join(Proyectos, Movimientos.id_proyecto == Proyectos.id_proyecto)
+            .filter(*date_filters, *cc_filters)
+            .group_by(
+                Proyectos.c_c,
+                Articulos.nombre,
+                Articulos.tipo,
+                Articulos.unidad_medida,
+                Articulos.precio_unitario,
+                Movimientos.tipo,
+            )
+            .all()
+        )
+
+        # Agrupar resultados por (c_c, material)
+        agrupado = {}
+        for row in base_query:
+            key = (row.c_c, row.nombre)
+            if key not in agrupado:
+                agrupado[key] = {
+                    "c_c": row.c_c,
+                    "material": row.nombre,
+                    "tipo": row.tipo.value if row.tipo else "N/A",
+                    "unidad_medida": row.unidad_medida or "N/A",
+                    "precio_unitario": row.precio_unitario or 0,
+                    "total_entrada": 0,
+                    "total_salida": 0,
+                }
+            tipo_mov = row.tipo_movimiento
+            if hasattr(tipo_mov, "value"):
+                tipo_mov = tipo_mov.value
+            if tipo_mov == "entrada":
+                agrupado[key]["total_entrada"] += row.total_cantidad or 0
+            elif tipo_mov == "salida":
+                agrupado[key]["total_salida"] += row.total_cantidad or 0
+
+        result = []
+        for item in agrupado.values():
+            item["diferencia"] = item["total_entrada"] - item["total_salida"]
+            item["costo_salida"] = round(item["total_salida"] * item["precio_unitario"], 2)
+            result.append(item)
+
+        result.sort(key=lambda x: (x["c_c"], x["material"]))
+        return result
+    finally:
+        session.close()
+
+
+def create_comparacion_pdf(comparacion_data):
+    """
+    Genera un PDF comparativo de entradas vs salidas por centro de costo.
+
+    Args:
+        comparacion_data (list[dict]): Datos obtenidos con get_comparacion_data().
+
+    Returns:
+        BytesIO: Buffer con el contenido del PDF generado.
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=72,
+        bottomMargin=18,
+    )
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Título
+    title_style = ParagraphStyle(
+        "CustomTitle",
+        parent=styles["Heading1"],
+        fontSize=20,
+        textColor=colors.HexColor("#2ca02c"),
+        spaceAfter=20,
+        alignment=1,
+    )
+    elements.append(Paragraph("Reporte Comparativo: Entradas vs Salidas", title_style))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    # Fecha de generación
+    elements.append(
+        Paragraph(
+            f"<b>Fecha de Generación:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+            styles["Normal"],
+        )
+    )
+    elements.append(Spacer(1, 0.3 * inch))
+
+    if comparacion_data:
+        # Agrupar por centro de costo
+        ccs = {}
+        for item in comparacion_data:
+            cc = item["c_c"]
+            if cc not in ccs:
+                ccs[cc] = []
+            ccs[cc].append(item)
+
+        for cc, items in sorted(ccs.items()):
+            # Subtítulo por CC
+            cc_style = ParagraphStyle(
+                f"CC_{cc}",
+                parent=styles["Heading2"],
+                fontSize=14,
+                textColor=colors.HexColor("#2ca02c"),
+                spaceAfter=10,
+            )
+            elements.append(Paragraph(f"Centro de Costo: {cc}", cc_style))
+            elements.append(Spacer(1, 0.1 * inch))
+
+            # Tabla
+            table_data = [
+                ["Material", "Tipo", "Unidad", "Entradas", "Salidas", "Diferencia", "Costo Salida"]
+            ]
+            subtotal_cc = 0
+            for item in items:
+                subtotal_cc += item["costo_salida"]
+                table_data.append([
+                    item["material"][:25],
+                    item["tipo"],
+                    item["unidad_medida"],
+                    str(item["total_entrada"]),
+                    str(item["total_salida"]),
+                    str(item["diferencia"]),
+                    f"${item['costo_salida']:,.2f}",
+                ])
+
+            table = Table(
+                table_data,
+                colWidths=[
+                    1.5 * inch, 0.8 * inch, 0.6 * inch,
+                    0.8 * inch, 0.8 * inch, 0.8 * inch, 1.0 * inch,
+                ],
+            )
+            table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2ca02c")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 10),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("FONTSIZE", (0, 1), (-1, -1), 8),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#e8f5e9")]),
+            ]))
+            elements.append(table)
+
+            # Subtotal por CC
+            subtotal_style = ParagraphStyle(
+                f"Subtotal_{cc}",
+                parent=styles["Normal"],
+                fontSize=10,
+                textColor=colors.HexColor("#2ca02c"),
+                alignment=2,
+            )
+            elements.append(
+                Paragraph(f"<b>Subtotal CC {cc}:</b> ${subtotal_cc:,.2f}", subtotal_style)
+            )
+            elements.append(Spacer(1, 0.3 * inch))
+
+        # Resumen general
+        total_entradas = sum(i["total_entrada"] for i in comparacion_data)
+        total_salidas = sum(i["total_salida"] for i in comparacion_data)
+        total_costo = sum(i["costo_salida"] for i in comparacion_data)
+        summary_style = ParagraphStyle(
+            "SummaryStyle",
+            parent=styles["Normal"],
+            fontSize=12,
+            textColor=colors.HexColor("#2ca02c"),
+            alignment=2,
+        )
+        elements.append(
+            Paragraph(
+                f"<b>Total Entradas:</b> {total_entradas} &nbsp; | &nbsp; "
+                f"<b>Total Salidas:</b> {total_salidas} &nbsp; | &nbsp; "
+                f"<b>Costo Total:</b> ${total_costo:,.2f}",
+                summary_style,
+            )
+        )
+    else:
+        elements.append(
+            Paragraph("No hay datos comparativos para mostrar.", styles["Normal"])
+        )
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def create_entradas_excel(entradas_data):
+    """
+    Genera un archivo Excel con los datos de entradas.
+
+    Args:
+        entradas_data (list[tuple]): Datos de entradas obtenidos con get_entradas_data().
+
+    Returns:
+        BytesIO: Buffer con el contenido del Excel generado.
+    """
+    rows = []
+    for entrada in entradas_data:
+        fecha_hora, cc, material, cantidad, precio_unitario, observaciones = entrada
+        total = cantidad * (precio_unitario or 0)
+        rows.append({
+            "Fecha/Hora": str(fecha_hora)[:19],
+            "C.C": cc,
+            "Material": material,
+            "Cantidad": cantidad,
+            "Precio Unitario": precio_unitario or 0,
+            "Total": total,
+        })
+    df = pd.DataFrame(rows)
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Entradas")
+    buffer.seek(0)
+    return buffer
+
+
+def create_salidas_excel(salidas_data):
+    """
+    Genera un archivo Excel con los datos de salidas.
+
+    Args:
+        salidas_data (list[tuple]): Datos de salidas obtenidos con get_salidas_data().
+
+    Returns:
+        BytesIO: Buffer con el contenido del Excel generado.
+    """
+    rows = []
+    for salida in salidas_data:
+        fecha_hora, cc, material, cantidad, nombre_punta, longitud, observaciones = salida
+        if nombre_punta:
+            detalle = f"{nombre_punta} ({longitud}m)" if longitud else nombre_punta
+        else:
+            detalle = f"{cantidad} unidades"
+        rows.append({
+            "Fecha/Hora": str(fecha_hora)[:19],
+            "C.C": cc,
+            "Material": material,
+            "Cantidad": cantidad if not nombre_punta else "Punta",
+            "Detalle": detalle,
+        })
+    df = pd.DataFrame(rows)
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Salidas")
+    buffer.seek(0)
+    return buffer
+
+
+def create_comparacion_excel(comparacion_data):
+    """
+    Genera un archivo Excel comparativo de entradas vs salidas.
+
+    Args:
+        comparacion_data (list[dict]): Datos obtenidos con get_comparacion_data().
+
+    Returns:
+        BytesIO: Buffer con el contenido del Excel generado.
+    """
+    df = pd.DataFrame(comparacion_data)
+    df.columns = [
+        "C.C", "Material", "Tipo", "Unidad", "Precio Unitario",
+        "Total Entradas", "Total Salidas",
+        "Diferencia", "Costo Salida",
+    ]
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Comparativo")
+    buffer.seek(0)
+    return buffer
+
 
 def create_entradas_pdf(entradas_data):
     """

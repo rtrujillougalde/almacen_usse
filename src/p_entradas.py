@@ -12,7 +12,7 @@ from utils import categorias, unidad_de_medida
 from data import (
     fetch_initial_data,
     add_movement_to_db,
-    get_recent_entrada_movements,
+    get_recent_movements,
     get_article_by_name,
 )
 
@@ -284,6 +284,13 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
             with col2:
                 st.metric("Nombre Obra", nombre_obra)
 
+        # --- Responsable ---
+        st.session_state.form_responsable = st.text_input(
+            "Responsable de la entrada",
+            value=st.session_state.get("form_responsable", ""),
+            key="form_responsable_input",
+        )
+
         st.divider()
 
         # --- Ítems ya agregados ---
@@ -368,6 +375,7 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
         return {
             "movement_items": st.session_state.movement_items,
             "id_proyecto": st.session_state.form_id_proyecto,
+            "responsable": st.session_state.get("form_responsable", ""),
         }
 
     return None
@@ -386,20 +394,23 @@ def display_recent_entrada_movements(proyectos_info):
         proyectos_info (dict): {id_proyecto: (nombre_obra, c_c)}.
     """
     try:
-        movements = get_recent_entrada_movements(limit=5)
+        movements = get_recent_movements("entrada", limit=5)
 
         if movements:
             for mov in movements:
                 proyecto = proyectos_info.get(
                     mov["id_proyecto"], ("Sin proyecto", "N/A")
                 )
-                row1, row2, row3 = st.columns(3)
+                row1, row2, row3, row4 = st.columns(4)
                 with row1:
                     st.write(f"Mov No. {mov['id_movimiento']}")
                 with row2:
                     st.write(f"Fecha: {mov['fecha_hora']}")
                 with row3:
-                    st.write(f"Proyecto: {proyecto[0]} {proyecto[1]}")
+                    st.write(f"C.C: {proyecto[0]} {proyecto[1]}")
+                with row4:
+                    st.write(f"Responsable: {mov['responsable']}") if mov.get("responsable") else st.write("Responsable: N/A")
+
 
                 if mov["items"]:
                     df = pd.DataFrame(mov["items"])
@@ -432,9 +443,10 @@ def handle_form_result(result):
 
     movement_items = result["movement_items"]
     id_proyecto = result["id_proyecto"]
+    responsable = result.get("responsable", "")
 
     try:
-        add_movement_to_db(movement_items, id_proyecto)
+        add_movement_to_db(movement_items, id_proyecto, responsable=responsable)
         st.success(f"✅ Movimiento registrado con {len(movement_items)} item(s)")
         st.balloons()
         # Limpiar estado del formulario
