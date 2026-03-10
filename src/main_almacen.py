@@ -1,16 +1,18 @@
 
+"""
+main_almacen.py - Punto de entrada principal de la aplicación Almacén USSE
 
+Configura la página, maneja la autenticación y gestiona la navegación
+entre las secciones: Inventario, Entradas, Salidas, Proyectos y Reportes.
+"""
 
 import streamlit as st
-import pandas as pd
-import numpy as np
-from sqlalchemy import create_engine, text
-from utils import get_engine, execute_sql_query, db_user, db_password, db_host, db_name
+from utils import db_user, db_password
 from p_entradas import main as entradas_main
 from p_inventario import main as inventario_main
 from p_salidas import main as salidas_main
 from p_proyectos import main as proyectos_main
-from p_reportes import main as reportes_main
+from p_reportes import main as reportes_main, reporte_salidas_main
 st.set_page_config(page_title="Almacén USSE", layout="centered")
 
 
@@ -54,5 +56,6 @@ elif page == "Proyectos":
 
 elif page == "Reportes":
     pdf = reportes_main()
-    #st.download_button("Descargar", data=pdf, file_name="reporte.pdf")
+    reporte_salidas_main()
+
     st.info("Funcionalidad de Reportes en desarrollo")
