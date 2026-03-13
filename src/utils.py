@@ -39,7 +39,7 @@ db_password = st.secrets["mysql_local"]["password"]
 db_host = st.secrets["mysql_local"]["host"]
 db_name = st.secrets["mysql_local"]["database"]
 
-
+@st.cache_resource
 def get_engine():
     """
     Crea y devuelve un engine de SQLAlchemy para la conexión a MySQL.
@@ -48,9 +48,19 @@ def get_engine():
         sqlalchemy.engine.Engine: Engine configurado.
     """
     return create_engine(
-        f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}"
+        f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}",
+        pool_pre_ping=True
     )
+@st.cache_resource
+def get_session_factory():
+    """
+    Crea y devuelve una fábrica de sesiones de SQLAlchemy.
 
+    Returns:
+        sqlalchemy.orm.sessionmaker: Fábrica de sesiones.
+    """
+    engine = get_engine()
+    return sessionmaker(bind=engine)
 
 def get_session():
     """
@@ -59,8 +69,7 @@ def get_session():
     Returns:
         sqlalchemy.orm.Session: Sesión activa.
     """
-    engine = get_engine()
-    Session = sessionmaker(bind=engine)
+    Session = get_session_factory()
     return Session()
 
 

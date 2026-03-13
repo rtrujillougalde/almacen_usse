@@ -11,7 +11,7 @@ import pandas as pd
 from data import (
     get_all_articulos,
     update_articulo,
-    get_cable_types,
+    get_cable_names,
     get_available_cable_puntas,
 )
 
@@ -44,7 +44,9 @@ def main():
 
         with st.expander("Editar artículos"):
             edited_data = st.data_editor(
-                data, hide_index=True, use_container_width=True
+                data, hide_index=True,
+                use_container_width=True,
+                disabled=["id","cantidad en stock"]  # No permitir editar el ID
             )
 
         # Guardar cambios si hubo edición
@@ -55,6 +57,7 @@ def main():
                         update_articulo(
                             id_articulo=edited_row["id"],
                             nombre=edited_row["nombre"],
+                            num_catalogo=edited_row["num_catalogo"],
                             cantidad_en_stock=edited_row["cantidad en stock"],
                             unidad_medida=edited_row["unidad de medida"],
                             stock_minimo=edited_row["stock minimo"],
@@ -64,7 +67,7 @@ def main():
                 st.error(f"Error al guardar cambios: {e}")
 
         # --- Sección de cables ---
-        cable_names = get_cable_types()
+        cable_names = get_cable_names()
 
         st.subheader("Cables en stock")
         selected_cable = st.selectbox("Selecciona un cable", cable_names)

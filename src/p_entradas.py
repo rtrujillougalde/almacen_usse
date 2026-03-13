@@ -61,6 +61,11 @@ def display_new_item_form():
             key="form_nombre_item_input",
         )
         st.session_state.form_nombre_item = nombre_item
+        st.session_state.form_num_catalogo = st.text_input(
+            "Número de catálogo",
+            value=st.session_state.form_num_catalogo,
+            key="form_num_catalogo_input",
+        )
 
         st.session_state.form_tipo = st.selectbox(
             "Tipo de item",
@@ -197,6 +202,7 @@ def gather_form_data(nombre_item):
             if st.session_state.form_is_new
             else nombre_item
         ),
+        "num_catalogo": st.session_state.form_num_catalogo,
         "tipo": st.session_state.form_tipo,
         "precio_unitario": st.session_state.form_precio_unitario,
         "unidad_medida": st.session_state.form_unidad_medida,
@@ -231,6 +237,7 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
         "is_new": False,
         "tipo": "material",
         "nombre_item": "",
+        "num_catalogo": "",
         "precio_unitario": 0.0,
         "unidad_medida": "pieza",
         "categoria": "",

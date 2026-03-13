@@ -5,7 +5,7 @@ Contiene todas las funciones que interactúan con la base de datos MySQL
 usando SQLAlchemy. No contiene llamadas a Streamlit.
 Todas las funciones de consulta y manipulación de datos están centralizadas aquí.
 """
-
+import streamlit as st  # Solo para manejo de caché, no para UI
 from datetime import datetime
 from io import BytesIO
 
@@ -29,10 +29,20 @@ from classes import (
 from utils import get_session
 
 
+def clear_cached_reference_data():
+    """Limpia caches de lectura afectados por escrituras de inventario."""
+    get_all_articulos.clear()
+    get_all_articulo_names.clear()
+    get_cable_names.clear()
+    get_available_cable_puntas.clear()
+    get_available_puntas_for_article.clear()
+    get_proyectos_info.clear()
+
+
 # =============================================================================
 # ARTÍCULOS
 # =============================================================================
-
+@st.cache_data(ttl=300)  # Cachear por 5 minutos para mejorar rendimiento
 def get_all_articulos():
     """
     Obtiene todos los artículos de la base de datos.
@@ -47,6 +57,7 @@ def get_all_articulos():
             {
                 "id": a.id_articulo,
                 "nombre": a.nombre,
+                "num_catalogo": a.num_catalogo,
                 "cantidad en stock": round(a.cantidad_en_stock, 2) if a.cantidad_en_stock is not None else 0.00,
                 "unidad de medida": a.unidad_medida,
                 "stock minimo": round(a.stock_minimo, 2) if a.stock_minimo is not None else 0.00,
@@ -55,10 +66,14 @@ def get_all_articulos():
             for a in articulos
         ]
         return data
+    except Exception as e:
+        print(f"Error al obtener artículos: {e}")
+        return []
+
     finally:
         session.close()
 
-
+@st.cache_data(ttl=300)
 def get_all_articulo_names():
     """
     Obtiene los nombres de todos los artículos.
@@ -69,10 +84,14 @@ def get_all_articulo_names():
     session = get_session()
     try:
         return [row.nombre for row in session.query(Articulos).all()]
+    except Exception as e:
+        print(f"Error al obtener nombres de artículos: {e}")
+        return []
+    
     finally:
         session.close()
 
-
+@st.cache_data(ttl=300)
 def get_cable_names():
     """
     Obtiene los nombres de todos los artículos que son cables.
@@ -84,6 +103,9 @@ def get_cable_names():
     try:
         cables = session.query(Articulos).filter(Articulos.es_cable == True).all()
         return [row.nombre for row in cables]
+    except Exception as e:
+        print(f"Error al obtener nombres de cables: {e}")
+        return []
     finally:
         session.close()
 
@@ -101,6 +123,9 @@ def get_article_by_name(nombre):
     session = get_session()
     try:
         return session.query(Articulos).filter(Articulos.nombre == nombre).first()
+    except Exception as e:
+        print(f"Error al buscar artículo por nombre '{nombre}': {e}")
+        return None
     finally:
         session.close()
 
@@ -124,7 +149,7 @@ def get_article_by_id(id_articulo):
         session.close()
 
 
-def update_articulo(id_articulo, nombre, cantidad_en_stock, unidad_medida, stock_minimo):
+def update_articulo(id_articulo, nombre, num_catalogo, cantidad_en_stock, unidad_medida, stock_minimo):
     """
     Actualiza los campos editables de un artículo.
 
@@ -147,12 +172,15 @@ def update_articulo(id_articulo, nombre, cantidad_en_stock, unidad_medida, stock
         if not articulo:
             raise ValueError(f"Artículo con ID {id_articulo} no encontrado")
         articulo.nombre = nombre
+        articulo.num_catalogo = num_catalogo
         articulo.cantidad_en_stock = cantidad_en_stock
         articulo.unidad_medida = unidad_medida
         articulo.stock_minimo = stock_minimo
         session.commit()
-    except Exception:
+    except Exception as e:
         session.rollback()
+        print(f"Error al actualizar artículo ID {id_articulo}: {e}")
+        
         raise
     finally:
         session.close()
@@ -161,22 +189,42 @@ def update_articulo(id_articulo, nombre, cantidad_en_stock, unidad_medida, stock
 # =============================================================================
 # CABLES / PUNTAS
 # =============================================================================
+def _query_available_puntas(session, *, id_articulo=None, cable_name=None):
+    """Obtiene puntas disponibles aplicando el filtro en SQL, no en Python."""
+    used_puntas_subquery = session.query(DetalleMovimiento.id_punta).join(
+        Movimientos, DetalleMovimiento.id_movimiento == Movimientos.id_movimiento
+    ).filter(
+        Movimientos.tipo == "salida",
+        DetalleMovimiento.id_punta.isnot(None),
+    ).distinct()
 
-def get_cable_types():
-    """
-    Obtiene todos los artículos marcados como cable.
+    query = session.query(
+        StockPuntas.id_punta,
+        StockPuntas.nombre_punta,
+        StockPuntas.longitud,
+    ).filter(
+        ~StockPuntas.id_punta.in_(used_puntas_subquery)
+    )
 
-    Returns:
-        list[str]: Lista de nombres de artículos tipo cable.
-    """
-    session = get_session()
-    try:
-        cables = session.query(Articulos).filter(Articulos.es_cable == 1).all()
-        return [cable.nombre for cable in cables]
-    finally:
-        session.close()
+    if id_articulo is not None:
+        query = query.filter(StockPuntas.id_articulo == id_articulo)
+
+    if cable_name is not None:
+        query = query.join(
+            Articulos, StockPuntas.id_articulo == Articulos.id_articulo
+        ).filter(Articulos.nombre == cable_name)
+
+    return [
+        {
+            "id_punta": row.id_punta,
+            "nombre_punta": row.nombre_punta,
+            "longitud": row.longitud,
+        }
+        for row in query.order_by(StockPuntas.id_punta).all()
+    ]
 
 
+@st.cache_data(ttl=300)
 def get_available_cable_puntas(cable_name):
     """
     Obtiene las puntas disponibles de un cable, excluyendo las que ya tienen salida.
@@ -189,29 +237,20 @@ def get_available_cable_puntas(cable_name):
     """
     session = get_session()
     try:
-        # Obtener IDs de puntas con movimientos de salida
-        puntas_with_salida = session.query(DetalleMovimiento.id_punta).join(
-            Movimientos, DetalleMovimiento.id_movimiento == Movimientos.id_movimiento
-        ).filter(Movimientos.tipo == "salida").distinct().all()
-        salida_punta_ids = {row.id_punta for row in puntas_with_salida}
-
-        # Obtener puntas del cable excluyendo las que ya salieron
-        cable_puntas = session.query(
-            StockPuntas.nombre_punta.label("nombre de punta"),
-            StockPuntas.longitud.label("longitud"),
-        ).join(
-            Articulos, StockPuntas.id_articulo == Articulos.id_articulo
-        ).filter(
-            Articulos.nombre == cable_name,
-            ~StockPuntas.id_punta.in_(salida_punta_ids) if salida_punta_ids else True,
-        ).all()
-
-        return [dict(row._mapping) for row in cable_puntas]
+        puntas = _query_available_puntas(session, cable_name=cable_name)
+        return [
+            {
+                "nombre de punta": punta["nombre_punta"],
+                "longitud": punta["longitud"],
+            }
+            for punta in puntas
+        ]
     finally:
         session.close()
 
 
-def get_available_puntas_for_article(id_articulo):
+@st.cache_data(ttl=300)
+def get_available_puntas_for_article(id_articulo: int):
     """
     Obtiene las puntas disponibles para un artículo cable,
     excluyendo las que ya fueron utilizadas en movimientos de salida.
@@ -224,38 +263,12 @@ def get_available_puntas_for_article(id_articulo):
     """
     session = get_session()
     try:
-        all_puntas = session.query(StockPuntas).filter(
-            StockPuntas.id_articulo == id_articulo
-        ).all()
-
-        if not all_puntas:
-            return []
-
-        # Obtener puntas usadas en salidas
-        used_punta_ids = session.query(DetalleMovimiento.id_punta).join(
-            Movimientos, Movimientos.id_movimiento == DetalleMovimiento.id_movimiento
-        ).filter(
-            Movimientos.tipo == "salida",
-            DetalleMovimiento.id_punta.isnot(None),
-        ).distinct().all()
-        used_ids = {punta_id[0] for punta_id in used_punta_ids}
-
-        # Filtrar solo las disponibles
-        available = [p for p in all_puntas if p.id_punta not in used_ids]
-        # Devolver datos serializables
-        return [
-            {
-                "id_punta": p.id_punta,
-                "nombre_punta": p.nombre_punta,
-                "longitud": p.longitud,
-            }
-            for p in available
-        ]
+        return _query_available_puntas(session, id_articulo=id_articulo)
     finally:
         session.close()
 
 
-def get_punta_by_id(id_punta):
+def get_punta_by_id(id_punta: int):
     """
     Busca una punta por su ID.
 
@@ -319,6 +332,7 @@ def get_all_proyectos():
         session.close()
 
 
+@st.cache_data(ttl=300)
 def get_proyectos_info():
     """
     Obtiene un diccionario con la información de todos los proyectos.
@@ -397,24 +411,13 @@ def fetch_initial_data():
     Raises:
         Exception: Si ocurre un error al consultar la base de datos.
     """
-    session = get_session()
-    try:
-        nombres_articulos = [row.nombre for row in session.query(Articulos).all()]
-        nombres_cables = [
-            row.nombre
-            for row in session.query(Articulos).filter(Articulos.es_cable == True).all()
-        ]
-        proyectos = session.query(Proyectos).all()
-        proyectos_info = {
-            p.id_proyecto: (p.nombre_obra, p.c_c)
-            for p in proyectos
-        }
-        return nombres_articulos, nombres_cables, proyectos_info
-    finally:
-        session.close()
+    nombres_articulos = get_all_articulo_names()
+    nombres_cables = get_cable_names()
+    proyectos_info = get_proyectos_info()
+    return nombres_articulos, nombres_cables, proyectos_info
 
 
-def add_movement_to_db(movement_items, id_proyecto=None, responsable=None):
+def add_movement_to_db(movement_items, id_proyecto, responsable):
     """
     Crea un registro de Movimiento tipo 'entrada' y agrega los DetalleMovimiento
     correspondientes. Actualiza el stock de los artículos.
@@ -435,7 +438,6 @@ def add_movement_to_db(movement_items, id_proyecto=None, responsable=None):
     """
     session = get_session()
     try:
-        # Crear registro de movimiento
         movimiento = Movimientos(
             id_proyecto=id_proyecto,
             tipo="entrada",
@@ -444,14 +446,26 @@ def add_movement_to_db(movement_items, id_proyecto=None, responsable=None):
             responsable=responsable,
         )
         session.add(movimiento)
-        session.commit()
+        session.flush()
 
-        # Agregar cada ítem al movimiento
+        existing_names = {
+            item["nombre_item"]
+            for item in movement_items
+            if not item["is_new"]
+        }
+        existing_articles = {}
+        if existing_names:
+            existing_articles = {
+                articulo.nombre: articulo
+                for articulo in session.query(Articulos).filter(
+                    Articulos.nombre.in_(existing_names)
+                ).all()
+            }
+
         for item_data in movement_items:
             nueva_punta = None
 
             if item_data["is_new"]:
-                # Crear nuevo artículo
                 articulo = Articulos(
                     nombre=item_data["nombre_item"],
                     tipo=item_data["tipo"],
@@ -467,43 +481,37 @@ def add_movement_to_db(movement_items, id_proyecto=None, responsable=None):
                     ),
                 )
                 session.add(articulo)
-                session.commit()
-                articulo_id = articulo.id_articulo
+                session.flush()
 
                 if item_data["es_cable"]:
                     nueva_punta = StockPuntas(
-                        id_articulo=articulo_id,
+                        id_articulo=articulo.id_articulo,
                         nombre_punta=item_data["nombre_punta"],
                         longitud=item_data["longitud"],
                     )
                     session.add(nueva_punta)
                     session.flush()
-                    session.refresh(nueva_punta)
             else:
-                # Actualizar artículo existente
-                articulo = session.query(Articulos).filter(
-                    Articulos.nombre == item_data["nombre_item"]
-                ).first()
-                articulo_id = articulo.id_articulo
+                articulo = existing_articles.get(item_data["nombre_item"])
+                if not articulo:
+                    raise ValueError(
+                        f"Artículo no encontrado: {item_data['nombre_item']}"
+                    )
 
                 if item_data["es_cable"]:
                     nueva_punta = StockPuntas(
-                        id_articulo=articulo_id,
+                        id_articulo=articulo.id_articulo,
                         nombre_punta=item_data["nombre_punta"],
                         longitud=item_data["longitud"],
                     )
                     session.add(nueva_punta)
-                    session.commit()
                     articulo.cantidad_en_stock += item_data["longitud"]
-                    session.commit()
                 else:
                     articulo.cantidad_en_stock += item_data["cantidad"]
-                    session.commit()
 
-            # Crear registro de detalle del movimiento
             detalle = DetalleMovimiento(
                 id_movimiento=movimiento.id_movimiento,
-                id_articulo=articulo_id,
+                id_articulo=articulo.id_articulo,
                 cantidad=(
                     item_data["cantidad"]
                     if not item_data["es_cable"]
@@ -514,6 +522,7 @@ def add_movement_to_db(movement_items, id_proyecto=None, responsable=None):
             session.add(detalle)
 
         session.commit()
+        clear_cached_reference_data()
         return True
     except Exception:
         session.rollback()
@@ -546,62 +555,59 @@ def get_recent_movements(tipo, limit=5):
             Movimientos.tipo == tipo
         ).order_by(Movimientos.fecha_hora.desc()).limit(limit).all()
 
-        result = []
+        if not movimientos:
+            return []
+
+        movement_ids = [mov.id_movimiento for mov in movimientos]
+        detalles = session.query(
+            DetalleMovimiento.id_movimiento,
+            DetalleMovimiento.cantidad,
+            Articulos.nombre,
+            Articulos.num_catalogo,
+            Articulos.es_cable,
+            StockPuntas.nombre_punta,
+            StockPuntas.longitud,
+        ).join(
+            Articulos, DetalleMovimiento.id_articulo == Articulos.id_articulo
+        ).outerjoin(
+            StockPuntas, DetalleMovimiento.id_punta == StockPuntas.id_punta
+        ).filter(
+            DetalleMovimiento.id_movimiento.in_(movement_ids)
+        ).order_by(
+            DetalleMovimiento.id_movimiento,
+            DetalleMovimiento.id_detalle,
+        ).all()
+
+        result_by_id = {}
         for mov in movimientos:
-            detalles = session.query(DetalleMovimiento).filter(
-                DetalleMovimiento.id_movimiento == mov.id_movimiento
-            ).all()
-
-            items = []
-            for detalle in detalles:
-                articulo = session.query(Articulos).filter(
-                    Articulos.id_articulo == detalle.id_articulo
-                ).first()
-                if articulo:
-                    items.append(
-                        _format_detail_item(session, detalle, articulo)
-                    )
-
-            result.append({
+            result_by_id[mov.id_movimiento] = {
                 "id_movimiento": mov.id_movimiento,
                 "fecha_hora": mov.fecha_hora,
                 "id_proyecto": mov.id_proyecto,
-                "items": items,
+                "items": [],
                 "responsable": mov.responsable,
+            }
+
+        for detalle in detalles:
+            if detalle.es_cable:
+                if detalle.nombre_punta:
+                    item_info = f"{detalle.nombre} - {detalle.nombre_punta}"
+                    cantidad = f"{detalle.longitud} m"
+                else:
+                    item_info = f"{detalle.nombre} (punta no encontrada)"
+                    cantidad = "N/A"
+            else:
+                item_info = detalle.nombre
+                cantidad = detalle.cantidad
+
+            result_by_id[detalle.id_movimiento]["items"].append({
+                "Item": item_info,
+                "Cantidad": cantidad,
             })
 
-        return result
+        return [result_by_id[mov.id_movimiento] for mov in movimientos]
     finally:
         session.close()
-
-
-def _format_detail_item(session, detalle, articulo):
-    """
-    Formatea un detalle de movimiento en un diccionario para visualización.
-
-    Args:
-        session: Sesión de SQLAlchemy activa.
-        detalle (DetalleMovimiento): Detalle del movimiento.
-        articulo (Articulos): Artículo asociado al detalle.
-
-    Returns:
-        dict: {'Item': str, 'Cantidad': str|int}
-    """
-    if articulo.es_cable:
-        punta = session.query(StockPuntas).filter(
-            StockPuntas.id_punta == detalle.id_punta
-        ).first()
-        if punta:
-            item_info = f"{articulo.nombre} - {punta.nombre_punta}"
-            cantidad = f"{punta.longitud} m"
-        else:
-            item_info = f"{articulo.nombre} (punta no encontrada)"
-            cantidad = "N/A"
-    else:
-        item_info = articulo.nombre
-        cantidad = detalle.cantidad
-
-    return {"Item": item_info, "Cantidad": cantidad}
 
 
 # =============================================================================
@@ -627,7 +633,6 @@ def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
     """
     session = get_session()
     try:
-        # Crear registro de movimiento
         movimiento = Movimientos(
             id_proyecto=id_proyecto,
             tipo="salida",
@@ -636,13 +641,31 @@ def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
             responsable=responsable,
         )
         session.add(movimiento)
-        session.commit()
+        session.flush()
 
-        # Procesar cada ítem
+        article_ids = {item["id_articulo"] for item in movement_items}
+        articles = {
+            articulo.id_articulo: articulo
+            for articulo in session.query(Articulos).filter(
+                Articulos.id_articulo.in_(article_ids)
+            ).all()
+        }
+        punta_ids = {
+            item["id_punta"]
+            for item in movement_items
+            if item["es_cable"] and item.get("id_punta") is not None
+        }
+        puntas = {}
+        if punta_ids:
+            puntas = {
+                punta.id_punta: punta
+                for punta in session.query(StockPuntas).filter(
+                    StockPuntas.id_punta.in_(punta_ids)
+                ).all()
+            }
+
         for item_data in movement_items:
-            articulo = session.query(Articulos).filter(
-                Articulos.id_articulo == item_data["id_articulo"]
-            ).first()
+            articulo = articles.get(item_data["id_articulo"])
 
             if not articulo:
                 raise ValueError(
@@ -650,40 +673,38 @@ def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
                 )
 
             if not item_data["es_cable"]:
-                # Ítem no cable: restar cantidad del stock
                 if articulo.cantidad_en_stock < item_data["cantidad"]:
                     raise ValueError(
                         f"Stock insuficiente para {item_data['nombre_item']}"
                     )
                 articulo.cantidad_en_stock -= item_data["cantidad"]
-                session.commit()
+                cantidad_detalle = item_data["cantidad"]
+                id_punta = None
             else:
-                # Ítem cable: registrar la salida de la punta
-                punta = session.query(StockPuntas).filter(
-                    StockPuntas.id_punta == item_data["id_punta"]
-                ).first()
+                punta = puntas.get(item_data["id_punta"])
 
                 if not punta:
                     raise ValueError("Punta no encontrada")
 
-                item_data["longitud"] = punta.longitud
-                articulo.cantidad_en_stock -= punta.longitud
-                session.commit()
+                if articulo.cantidad_en_stock < punta.longitud:
+                    raise ValueError(
+                        f"Stock insuficiente para {item_data['nombre_item']}"
+                    )
 
-            # Crear registro de detalle del movimiento
+                articulo.cantidad_en_stock -= punta.longitud
+                cantidad_detalle = punta.longitud
+                id_punta = item_data["id_punta"]
+
             detalle = DetalleMovimiento(
                 id_movimiento=movimiento.id_movimiento,
                 id_articulo=item_data["id_articulo"],
-                cantidad=(
-                    item_data["cantidad"]
-                    if not item_data["es_cable"]
-                    else item_data.get("longitud", 0)
-                ),
-                id_punta=item_data["id_punta"] if item_data["es_cable"] else None,
+                cantidad=cantidad_detalle,
+                id_punta=id_punta,
             )
             session.add(detalle)
 
         session.commit()
+        clear_cached_reference_data()
         return True
     except Exception:
         session.rollback()
@@ -878,9 +899,9 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
                     "material": row.nombre,
                     "tipo": row.tipo.value if row.tipo else "N/A",
                     "unidad_medida": row.unidad_medida or "N/A",
-                    "precio_unitario": row.precio_unitario or 0,
-                    "total_entrada": 0,
-                    "total_salida": 0,
+                    "precio_unitario": row.precio_unitario or 0.0,
+                    "total_entrada": 0.0,
+                    "total_salida": 0.0,
                 }
             tipo_mov = row.tipo_movimiento
             if hasattr(tipo_mov, "value"):
@@ -892,8 +913,12 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
 
         result = []
         for item in agrupado.values():
-            item["diferencia"] = item["total_entrada"] - item["total_salida"]
-            item["costo_salida"] = round(item["total_salida"] * item["precio_unitario"], 2)
+            item["diferencia"] = item["total_salida"] - item["total_entrada"]
+            costo_base = item["total_salida"] * item["precio_unitario"]
+            if item["tipo"] == "herramienta":
+                item["costo_material_usado"] = round(costo_base * 0.05, 2)
+            else:
+                item["costo_material_usado"] = round(costo_base, 2)
             result.append(item)
 
         result.sort(key=lambda x: (x["c_c"], x["material"]))
@@ -973,7 +998,7 @@ def create_comparacion_pdf(comparacion_data):
             ]
             subtotal_cc = 0
             for item in items:
-                subtotal_cc += item["costo_salida"]
+                subtotal_cc += item["costo_material_usado"]
                 table_data.append([
                     item["material"][:25],
                     item["tipo"],
@@ -981,7 +1006,7 @@ def create_comparacion_pdf(comparacion_data):
                     str(item["total_entrada"]),
                     str(item["total_salida"]),
                     str(item["diferencia"]),
-                    f"${item['costo_salida']:,.2f}",
+                    f"${item['costo_material_usado']:,.2f}",
                 ])
 
             table = Table(
@@ -1020,7 +1045,7 @@ def create_comparacion_pdf(comparacion_data):
         # Resumen general
         total_entradas = sum(i["total_entrada"] for i in comparacion_data)
         total_salidas = sum(i["total_salida"] for i in comparacion_data)
-        total_costo = sum(i["costo_salida"] for i in comparacion_data)
+        total_costo = sum(i["costo_material_usado"] for i in comparacion_data)
         summary_style = ParagraphStyle(
             "SummaryStyle",
             parent=styles["Normal"],

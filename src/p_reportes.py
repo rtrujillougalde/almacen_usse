@@ -354,7 +354,7 @@ def reporte_comparacion_main():
                     fecha_inicio_str, fecha_fin_str, cc_filter=cc_filter
                 )
             except Exception as e:
-                st.error(f"Error al obtener datos: {e}")
+                st.error(f"Error al obtener datos para comparar : {e}")
                 return
 
         if comparacion_data:
@@ -394,11 +394,11 @@ def reporte_comparacion_main():
             preview_df.columns = [
                 "C.C", "Material", "Tipo", "Unidad", "Precio Unit.",
                 "Total Entradas", "Total Salidas",
-                "Diferencia", "Costo Salida",
+                "Diferencia", "Costo material usado",
             ]
             st.dataframe(preview_df, use_container_width=True)
 
-            total_costo = sum(i["costo_salida"] for i in comparacion_data)
+            total_costo = sum(i["costo_material_usado"] for i in comparacion_data)
             st.metric("Costo Total de material usado", f"${total_costo:,.2f}")
         else:
             st.warning(

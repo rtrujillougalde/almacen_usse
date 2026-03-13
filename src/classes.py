@@ -66,6 +66,7 @@ class Articulos(Base):
     __tablename__ = 'articulos'
     id_articulo= Column(Integer, primary_key=True)
     nombre = Column(String)
+    num_catalogo = Column(String) # Número de catálogo o referencia del artículo
     tipo = Column(Enum(TipoEnum)) # 'Material' o 'Herramienta'
     cantidad_en_stock = Column(Integer)
     unidad_medida = Column(String)
