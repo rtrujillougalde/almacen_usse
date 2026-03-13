@@ -231,7 +231,7 @@ def display_salida_report_results(salidas_data, pdf_buffer, excel_buffer, pdf_na
 # FUNCIONES PRINCIPALES DE PÁGINA
 # =============================================================================
 
-def main():
+def reporte_entradas_main():
     """
     Función principal del reporte de entradas.
     Muestra filtros de fecha/CC, genera el PDF y ofrece descarga.
@@ -283,8 +283,8 @@ def reporte_salidas_main():
     Función principal del reporte de salidas.
     Muestra filtros de fecha/CC, genera el PDF y ofrece descarga.
     """
-    st.title("📄 Reporte de Salidas - Almacén USSE")
-    st.subheader("Reporte de Salidas de Almacén")
+    st.title("📄 Reporte de Salidas")
+    
     st.info(
         "Este reporte extrae las salidas registradas de la base de datos, "
         "mostrando fecha, centro de costos, materiales y detalles."
@@ -330,7 +330,7 @@ def reporte_comparacion_main():
     Función principal del reporte comparativo entradas vs salidas.
     Muestra filtros de fecha/CC, genera el PDF y ofrece descarga.
     """
-    st.title("📊 Reporte Comparativo - Almacén USSE")
+    st.title("📊 Reporte Comparativo")
     st.subheader("Entradas vs Salidas por Centro de Costo")
     st.info(
         "Este reporte compara los materiales y herramientas que entraron "

@@ -4,7 +4,7 @@ utils.py - Utilidades de configuración y conexión a base de datos
 Contiene la configuración de conexión a MySQL, la creación del engine
 de SQLAlchemy, y constantes compartidas (categorías, unidades de medida).
 """
-
+from pathlib import Path
 import streamlit as st
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 # =============================================================================
 # CONSTANTES
 # =============================================================================
-
+LOGO_PATH = Path(__file__).resolve().parent.parent / "images" / "logo_usse_2.jpg"
 categorias = [
     'albañileria', 'aire_acondicionado', 'aislantes',
     'almacen_dormitorios', 'alumbrado', 'baterias',

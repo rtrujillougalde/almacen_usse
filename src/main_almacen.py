@@ -7,43 +7,38 @@ entre las secciones: Inventario, Entradas, Salidas, Proyectos y Reportes.
 """
 
 import streamlit as st
-from utils import db_user, db_password
+from utils import LOGO_PATH
+from user_passwords import main as login_main, logout, get_allowed_pages
 from p_entradas import main as entradas_main
 from p_inventario import main as inventario_main
 from p_salidas import main as salidas_main
 from p_proyectos import main as proyectos_main
-from p_reportes import main as reportes_main, reporte_salidas_main, reporte_comparacion_main
-st.set_page_config(page_title="Almacén USSE", layout="centered")
+from p_reportes import reporte_entradas_main, reporte_salidas_main, reporte_comparacion_main
 
 
+st.set_page_config(page_title="Almacén USSE", page_icon=str(LOGO_PATH), layout="centered")
 
-# Pantalla de inicio de sesión
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = True
+# ── Autenticación ────────────────────────────────────────
+login_main()
 
-if not st.session_state.logged_in:
-    st.title("Iniciar sesión en Almacén USSE")
-    username = st.text_input("Usuario")
-    password = st.text_input("Contraseña", type="password")
-    if st.button("Iniciar sesión"):
-        if username == db_user and password == db_password:
-            st.session_state.logged_in = True
-            st.success("¡Inicio de sesión exitoso!")
-            st.rerun()
-        else:
-            st.error("Usuario o contraseña incorrectos")
-    st.stop()
-
-# Menú lateral
+# ── Sidebar: usuario, logout y navegación por rol ────────
+st.sidebar.image(str(LOGO_PATH), width=200)
 st.sidebar.title("Menú")
-page = st.sidebar.radio("Ir a:", ("Inventario", "Entradas", "Salidas", "Proyectos", "Reportes"))
+st.sidebar.caption(f"Sesión: {st.session_state.authenticated_user}  ({st.session_state.user_role})")
 
+if st.sidebar.button("Cerrar sesión", use_container_width=True):
+    logout()
 
+allowed_pages = get_allowed_pages(st.session_state.user_role)
+page = st.sidebar.radio("Ir a:", allowed_pages)
+
+# ── Contenido ────────────────────────────────────────────
 st.title('Almacén USSE')
+st.image(str(LOGO_PATH), width=240)
 
 if page == "Inventario":
     inventario_main()
-    
+
 elif page == "Entradas":
     entradas_main()
 
@@ -52,11 +47,10 @@ elif page == "Salidas":
 
 elif page == "Proyectos":
     proyectos_main()
-    st.info("Funcionalidad de Proyectos en desarrollo")
+    
 
 elif page == "Reportes":
-    pdf = reportes_main()
+    reporte_entradas_main()
     reporte_salidas_main()
     reporte_comparacion_main()
-
     st.info("Funcionalidad de Reportes en desarrollo")
