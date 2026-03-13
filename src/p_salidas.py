@@ -12,7 +12,7 @@ from data import (
     get_all_articulo_names,
     get_article_by_name,
     get_article_by_id,
-    get_available_puntas_for_article,
+    get_available_puntas,
     get_punta_by_id,
     get_proyectos_info,
     add_salida_to_db,
@@ -77,7 +77,7 @@ def display_salida_cable_form(articulo):
         bool: True si se seleccionó una punta, False en caso contrario.
     """
     # Obtener puntas disponibles desde data.py
-    available_puntas = get_available_puntas_for_article(articulo.id_articulo)
+    available_puntas = get_available_puntas(articulo.id_articulo)
 
     if not available_puntas:
         st.warning("No hay puntas disponibles (todas han sido utilizadas)")

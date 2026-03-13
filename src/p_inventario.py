@@ -12,7 +12,8 @@ from data import (
     get_all_articulos,
     update_articulo,
     get_cable_names,
-    get_available_cable_puntas,
+    get_article_by_name,
+    get_available_puntas,
 )
 
 def highlight_low_stock(row):
@@ -73,8 +74,17 @@ def main():
         selected_cable = st.selectbox("Selecciona un cable", cable_names)
 
         if selected_cable:
-            cable_puntas = get_available_cable_puntas(selected_cable)
-            st.dataframe(cable_puntas)
+            cable = get_article_by_name(selected_cable)
+            if cable:
+                cable_puntas = get_available_puntas(cable.id_articulo)
+                formatted_puntas = [
+                    {
+                        "nombre de punta": punta["nombre_punta"],
+                        "longitud": punta["longitud"],
+                    }
+                    for punta in cable_puntas
+                ]
+                st.dataframe(formatted_puntas)
 
     except Exception as e:
         st.error(f"Error al conectar o consultar MySQL: {e}")

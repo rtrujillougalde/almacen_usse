@@ -34,8 +34,7 @@ def clear_cached_reference_data():
     get_all_articulos.clear()
     get_all_articulo_names.clear()
     get_cable_names.clear()
-    get_available_cable_puntas.clear()
-    get_available_puntas_for_article.clear()
+    get_available_puntas.clear()
     get_proyectos_info.clear()
 
 
@@ -189,68 +188,8 @@ def update_articulo(id_articulo, nombre, num_catalogo, cantidad_en_stock, unidad
 # =============================================================================
 # CABLES / PUNTAS
 # =============================================================================
-def _query_available_puntas(session, *, id_articulo=None, cable_name=None):
-    """Obtiene puntas disponibles aplicando el filtro en SQL, no en Python."""
-    used_puntas_subquery = session.query(DetalleMovimiento.id_punta).join(
-        Movimientos, DetalleMovimiento.id_movimiento == Movimientos.id_movimiento
-    ).filter(
-        Movimientos.tipo == "salida",
-        DetalleMovimiento.id_punta.isnot(None),
-    ).distinct()
-
-    query = session.query(
-        StockPuntas.id_punta,
-        StockPuntas.nombre_punta,
-        StockPuntas.longitud,
-    ).filter(
-        ~StockPuntas.id_punta.in_(used_puntas_subquery)
-    )
-
-    if id_articulo is not None:
-        query = query.filter(StockPuntas.id_articulo == id_articulo)
-
-    if cable_name is not None:
-        query = query.join(
-            Articulos, StockPuntas.id_articulo == Articulos.id_articulo
-        ).filter(Articulos.nombre == cable_name)
-
-    return [
-        {
-            "id_punta": row.id_punta,
-            "nombre_punta": row.nombre_punta,
-            "longitud": row.longitud,
-        }
-        for row in query.order_by(StockPuntas.id_punta).all()
-    ]
-
-
 @st.cache_data(ttl=300)
-def get_available_cable_puntas(cable_name):
-    """
-    Obtiene las puntas disponibles de un cable, excluyendo las que ya tienen salida.
-
-    Args:
-        cable_name (str): Nombre del cable.
-
-    Returns:
-        list[dict]: Lista de diccionarios con 'nombre de punta' y 'longitud'.
-    """
-    session = get_session()
-    try:
-        puntas = _query_available_puntas(session, cable_name=cable_name)
-        return [
-            {
-                "nombre de punta": punta["nombre_punta"],
-                "longitud": punta["longitud"],
-            }
-            for punta in puntas
-        ]
-    finally:
-        session.close()
-
-
-@st.cache_data(ttl=300)
-def get_available_puntas_for_article(id_articulo: int):
+def get_available_puntas(id_articulo: int):
     """
     Obtiene las puntas disponibles para un artículo cable,
     excluyendo las que ya fueron utilizadas en movimientos de salida.
@@ -259,11 +198,34 @@ def get_available_puntas_for_article(id_articulo: int):
         id_articulo (int): ID del artículo cable.
 
     Returns:
-        list[StockPuntas]: Lista de objetos StockPuntas disponibles.
+        list[dict]: Lista de diccionarios con id, nombre y longitud de cada punta.
     """
     session = get_session()
     try:
-        return _query_available_puntas(session, id_articulo=id_articulo)
+        used_puntas_subquery = session.query(DetalleMovimiento.id_punta).join(
+            Movimientos, DetalleMovimiento.id_movimiento == Movimientos.id_movimiento
+        ).filter(
+            Movimientos.tipo == "salida",
+            DetalleMovimiento.id_punta.isnot(None),
+        ).distinct()
+
+        puntas = session.query(
+            StockPuntas.id_punta,
+            StockPuntas.nombre_punta,
+            StockPuntas.longitud,
+        ).filter(
+            StockPuntas.id_articulo == id_articulo,
+            ~StockPuntas.id_punta.in_(used_puntas_subquery),
+        ).order_by(StockPuntas.id_punta).all()
+
+        return [
+            {
+                "id_punta": punta.id_punta,
+                "nombre_punta": punta.nombre_punta,
+                "longitud": punta.longitud,
+            }
+            for punta in puntas
+        ]
     finally:
         session.close()
 
