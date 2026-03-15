@@ -41,7 +41,7 @@ def clear_cached_reference_data():
 # =============================================================================
 # ARTÍCULOS
 # =============================================================================
-@st.cache_data(ttl=300)  # Cachear por 5 minutos para mejorar rendimiento
+#@st.cache_data(ttl=300)  # Cachear por 5 minutos para mejorar rendimiento
 def get_all_articulos():
     """
     Obtiene todos los artículos de la base de datos.

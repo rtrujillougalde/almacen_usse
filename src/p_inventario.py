@@ -41,31 +41,33 @@ def main():
         styled_df = df.style.apply(highlight_low_stock, axis=1).format(
             {"cantidad en stock": "{:.2f}", "stock minimo": "{:.2f}"}
         )
-        st.dataframe(styled_df, hide_index=True, use_container_width=True)
-
-        with st.expander("Editar artículos"):
+        if st.session_state.user_role == "consulta":
+            
+            st.dataframe(styled_df, hide_index=True, use_container_width=True)
+        else:
+        
             edited_data = st.data_editor(
                 data, hide_index=True,
                 use_container_width=True,
                 disabled=["id","cantidad en stock"]  # No permitir editar el ID
             )
 
-        # Guardar cambios si hubo edición
-        if edited_data != data:
-            try:
-                for edited_row, original_row in zip(edited_data, data):
-                    if edited_row != original_row:
-                        update_articulo(
-                            id_articulo=edited_row["id"],
-                            nombre=edited_row["nombre"],
-                            num_catalogo=edited_row["num_catalogo"],
-                            cantidad_en_stock=edited_row["cantidad en stock"],
-                            unidad_medida=edited_row["unidad de medida"],
-                            stock_minimo=edited_row["stock minimo"],
-                        )
-                st.success("Cambios guardados")
-            except Exception as e:
-                st.error(f"Error al guardar cambios: {e}")
+            # Guardar cambios si hubo edición
+            if edited_data != data:
+                try:
+                    for edited_row, original_row in zip(edited_data, data):
+                        if edited_row != original_row:
+                            update_articulo(
+                                id_articulo=edited_row["id"],
+                                nombre=edited_row["nombre"],
+                                num_catalogo=edited_row["num_catalogo"],
+                                cantidad_en_stock=edited_row["cantidad en stock"],
+                                unidad_medida=edited_row["unidad de medida"],
+                                stock_minimo=edited_row["stock minimo"],
+                            )
+                    st.success("Cambios guardados")
+                except Exception as e:
+                    st.error(f"Error al guardar cambios: {e}")
 
         # --- Sección de cables ---
         cable_names = get_cable_names()

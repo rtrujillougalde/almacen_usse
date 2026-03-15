@@ -13,7 +13,7 @@ from p_entradas import main as entradas_main
 from p_inventario import main as inventario_main
 from p_salidas import main as salidas_main
 from p_proyectos import main as proyectos_main
-from p_reportes import reporte_entradas_main, reporte_salidas_main, reporte_comparacion_main
+from p_reportes import main as reportes_main
 
 
 st.set_page_config(page_title="Almacén USSE", page_icon=str(LOGO_PATH), layout="centered")
@@ -50,7 +50,5 @@ elif page == "Proyectos":
     
 
 elif page == "Reportes":
-    reporte_entradas_main()
-    reporte_salidas_main()
-    reporte_comparacion_main()
+    reportes_main()
     st.info("Funcionalidad de Reportes en desarrollo")

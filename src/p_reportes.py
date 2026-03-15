@@ -405,4 +405,7 @@ def reporte_comparacion_main():
                 "No se encontraron registros en el rango de fechas especificado."
             )
 
-
+def main():
+    reporte_entradas_main()
+    reporte_salidas_main()
+    reporte_comparacion_main()
