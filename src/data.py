@@ -10,7 +10,7 @@ from datetime import datetime
 from io import BytesIO
 
 import pandas as pd
-from sqlalchemy import and_, cast, Date, func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import sessionmaker
 
 from reportlab.lib.pagesizes import letter
@@ -403,7 +403,7 @@ def add_movement_to_db(movement_items, id_proyecto, responsable):
         movimiento = Movimientos(
             id_proyecto=id_proyecto,
             tipo="entrada",
-            fecha_hora=datetime.now().isoformat(),
+            fecha_hora=datetime.now(),
             observaciones="",
             responsable=responsable,
         )
@@ -598,7 +598,7 @@ def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
         movimiento = Movimientos(
             id_proyecto=id_proyecto,
             tipo="salida",
-            fecha_hora=datetime.now().isoformat(),
+            fecha_hora=datetime.now(),
             observaciones="",
             responsable=responsable,
         )
@@ -717,8 +717,8 @@ def get_entradas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
         if fecha_inicio and fecha_fin:
             query = query.filter(
                 and_(
-                    cast(Movimientos.fecha_hora, Date) >= fecha_inicio,
-                    cast(Movimientos.fecha_hora, Date) <= fecha_fin,
+                    func.date(Movimientos.fecha_hora) >= fecha_inicio,
+                    func.date(Movimientos.fecha_hora) <= fecha_fin,
                 )
             )
 
@@ -775,8 +775,8 @@ def get_salidas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
         if fecha_inicio and fecha_fin:
             query = query.filter(
                 and_(
-                    cast(Movimientos.fecha_hora, Date) >= fecha_inicio,
-                    cast(Movimientos.fecha_hora, Date) <= fecha_fin,
+                    func.date(Movimientos.fecha_hora) >= fecha_inicio,
+                    func.date(Movimientos.fecha_hora) <= fecha_fin,
                 )
             )
 
@@ -815,8 +815,8 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
         date_filters = []
         if fecha_inicio and fecha_fin:
             date_filters = [
-                cast(Movimientos.fecha_hora, Date) >= fecha_inicio,
-                cast(Movimientos.fecha_hora, Date) <= fecha_fin,
+                func.date(Movimientos.fecha_hora) >= fecha_inicio,
+                func.date(Movimientos.fecha_hora) <= fecha_fin,
             ]
 
         cc_filters = []
@@ -1048,7 +1048,7 @@ def create_entradas_excel(entradas_data):
         fecha_hora, cc, material, cantidad, precio_unitario, observaciones = entrada
         total = cantidad * (precio_unitario or 0)
         rows.append({
-            "Fecha/Hora": str(fecha_hora)[:19],
+            "Fecha/Hora": fecha_hora.strftime("%Y-%m-%d %H:%M:%S") if fecha_hora else "",
             "C.C": cc,
             "Material": material,
             "Cantidad": cantidad,
@@ -1081,7 +1081,7 @@ def create_salidas_excel(salidas_data):
         else:
             detalle = f"{cantidad} unidades"
         rows.append({
-            "Fecha/Hora": str(fecha_hora)[:19],
+            "Fecha/Hora": fecha_hora.strftime("%Y-%m-%d %H:%M:%S") if fecha_hora else "",
             "C.C": cc,
             "Material": material,
             "Cantidad": cantidad if not nombre_punta else "Punta",
@@ -1174,7 +1174,7 @@ def create_entradas_pdf(entradas_data):
             total = cantidad * (precio_unitario or 0)
             total_general += total
             table_data.append([
-                str(fecha_hora)[:19],
+                fecha_hora.strftime("%Y-%m-%d %H:%M") if fecha_hora else "",
                 str(cc),
                 material[:30],
                 str(cantidad),
@@ -1279,7 +1279,7 @@ def create_salidas_pdf(salidas_data):
                 detail = f"{cantidad} unidades"
 
             table_data.append([
-                str(fecha_hora)[:19],
+                fecha_hora.strftime("%Y-%m-%d %H:%M") if fecha_hora else "",
                 str(cc),
                 material[:30],
                 str(cantidad) if not nombre_punta else "Punta",

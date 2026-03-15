@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Float, Boolean, Enum,ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, Enum, ForeignKey, DateTime
 import enum
 Base = declarative_base()
 class CatEnum(enum.Enum):
@@ -89,7 +89,7 @@ class Movimientos(Base):
     id_movimiento = Column(Integer, primary_key=True)
     id_proyecto = Column(Integer, ForeignKey('proyectos.id_proyecto')) # Proyecto asociado al movimiento
     tipo = Column(Enum(TipoMovimientoEnum)) # 'Entrada' o 'Salida'
-    fecha_hora = Column(String) # Fecha del movimiento
+    fecha_hora = Column(DateTime) # Fecha del movimiento
     observaciones = Column(String) # Detalles adicionales sobre el movimiento
     responsable = Column(String) # Persona responsable del movimiento
 

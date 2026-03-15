@@ -363,7 +363,7 @@ def display_recent_salida_movements(proyectos_info):
                 with row1:
                     st.write(f"Mov No. {mov['id_movimiento']}")
                 with row2:
-                    st.write(f"Fecha: {mov['fecha_hora']}")
+                    st.write(f"Fecha: {mov['fecha_hora'].strftime('%d/%m/%Y %H:%M') if mov['fecha_hora'] else 'N/A'}")
                 with row3:
                     st.write(f"C.C: {proyecto[0]} {proyecto[1]}")
 
