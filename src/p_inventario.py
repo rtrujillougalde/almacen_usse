@@ -43,12 +43,12 @@ def main():
         )
         if st.session_state.user_role == "consulta":
             
-            st.dataframe(styled_df, hide_index=True, use_container_width=True)
+            st.dataframe(styled_df, hide_index=True, width='stretch')
         else:
         
             edited_data = st.data_editor(
                 data, hide_index=True,
-                use_container_width=True,
+                width='stretch',
                 disabled=["id","cantidad en stock"]  # No permitir editar el ID
             )
 

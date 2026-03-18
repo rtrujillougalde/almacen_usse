@@ -26,7 +26,7 @@ st.sidebar.image(str(LOGO_PATH), width=200)
 st.sidebar.title("Menú")
 st.sidebar.caption(f"Sesión: {st.session_state.authenticated_user}  ({st.session_state.user_role})")
 
-if st.sidebar.button("Cerrar sesión", use_container_width=True):
+if st.sidebar.button("Cerrar sesión", width='stretch'):
     logout()
 
 allowed_pages = get_allowed_pages(st.session_state.user_role)

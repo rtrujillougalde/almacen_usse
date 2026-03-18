@@ -168,7 +168,7 @@ def main():
     with st.form("login_form"):
         username = st.text_input("Usuario")
         password = st.text_input("Contraseña", type="password")
-        submitted = st.form_submit_button("Iniciar sesión", use_container_width=True)
+        submitted = st.form_submit_button("Iniciar sesión", width='stretch')
 
     if submitted:
         try:
