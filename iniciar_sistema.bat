@@ -1,6 +1,7 @@
 @echo off
 :: Navega a la carpeta del proyecto (ajusta la ruta a la tuya)
-cd /d "C:\Users\regin\Documents\proyectos usse\almacen_usse"
+
+cd /d "%PROJECT_USSE_ALMACEN_DIR%"
 
 :: Activa el entorno virtual
 call .venv\Scripts\activate
