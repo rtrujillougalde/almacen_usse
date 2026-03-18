@@ -10,6 +10,7 @@ from datetime import datetime
 from io import BytesIO
 
 import pandas as pd
+
 from sqlalchemy import and_, func
 from sqlalchemy.orm import sessionmaker
 
@@ -72,7 +73,7 @@ def get_all_articulos():
     finally:
         session.close()
 
-@st.cache_data(ttl=300)
+# @st.cache_data(ttl=300)
 def get_all_articulo_names():
     """
     Obtiene los nombres de todos los artículos.
@@ -90,7 +91,7 @@ def get_all_articulo_names():
     finally:
         session.close()
 
-@st.cache_data(ttl=300)
+# @st.cache_data(ttl=300)
 def get_cable_names():
     """
     Obtiene los nombres de todos los artículos que son cables.
@@ -188,7 +189,7 @@ def update_articulo(id_articulo, nombre, num_catalogo, cantidad_en_stock, unidad
 # =============================================================================
 # CABLES / PUNTAS
 # =============================================================================
-@st.cache_data(ttl=300)
+# @st.cache_data(ttl=300)
 def get_available_puntas(id_articulo: int):
     """
     Obtiene las puntas disponibles para un artículo cable,
@@ -294,7 +295,7 @@ def get_all_proyectos():
         session.close()
 
 
-@st.cache_data(ttl=300)
+# @st.cache_data(ttl=300)
 def get_proyectos_info():
     """
     Obtiene un diccionario con la información de todos los proyectos.
@@ -484,7 +485,7 @@ def add_movement_to_db(movement_items, id_proyecto, responsable):
             session.add(detalle)
 
         session.commit()
-        clear_cached_reference_data()
+        #clear_cached_reference_data()
         return True
     except Exception:
         session.rollback()
@@ -666,7 +667,7 @@ def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
             session.add(detalle)
 
         session.commit()
-        clear_cached_reference_data()
+        #clear_cached_reference_data()
         return True
     except Exception:
         session.rollback()

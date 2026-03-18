@@ -48,7 +48,6 @@ elif page == "Salidas":
 elif page == "Proyectos":
     proyectos_main()
     
-
 elif page == "Reportes":
     reportes_main()
     st.info("Funcionalidad de Reportes en desarrollo")
