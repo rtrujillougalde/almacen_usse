@@ -468,6 +468,7 @@ def add_movement_to_db(movement_items, id_proyecto, responsable):
                         longitud=item_data["longitud"],
                     )
                     session.add(nueva_punta)
+                    session.flush()
                     articulo.cantidad_en_stock += item_data["longitud"]
                 else:
                     articulo.cantidad_en_stock += item_data["cantidad"]

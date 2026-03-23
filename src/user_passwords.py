@@ -179,6 +179,7 @@ def main():
                 st.session_state.user_role = role
                 st.session_state.login_attempts = 0
                 st.session_state.login_locked_until = None
+                st.info(f"Bienvenido, {username.strip()}! Rol: {role}")
                 st.rerun()
 
             st.error(_register_failed_attempt())
