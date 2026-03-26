@@ -6,46 +6,23 @@ Toda la lógica de acceso a datos se delega al módulo data.py.
 """
 
 import streamlit as st
-import pandas as pd
 
-from utils import categorias, unidad_de_medida
+from utils import (
+    categorias,
+    unidad_de_medida,
+    check_movement_db,
+    initialize_prefixed_session_state,
+    render_project_selector,
+    render_responsable_input,
+    display_recent_movements_table,
+    handle_movement_submission,
+)
 from data import (
     fetch_initial_data,
     add_movement_to_db,
     get_recent_movements,
     get_article_by_name,
 )
-
-
-# =============================================================================
-# HELPERS DE SESSION STATE
-# =============================================================================
-
-def initialize_session_state(form_defaults):
-    """
-    Inicializa las variables de session_state para persistencia del formulario.
-
-    Args:
-        form_defaults (dict): Valores por defecto para cada campo del formulario.
-    """
-    if "showing_form" not in st.session_state:
-        st.session_state.showing_form = False
-
-    for key, value in form_defaults.items():
-        if f"form_{key}" not in st.session_state:
-            st.session_state[f"form_{key}"] = value
-
-
-def reset_form_state(form_defaults):
-    """
-    Restablece todos los campos del formulario a sus valores por defecto.
-
-    Args:
-        form_defaults (dict): Valores por defecto del formulario.
-    """
-    st.session_state.showing_form = False
-    for key in form_defaults.keys():
-        st.session_state[f"form_{key}"] = form_defaults[key]
 
 
 # =============================================================================
@@ -256,8 +233,12 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
         st.session_state.current_form = "closed"
     if "entrada_submitted" not in st.session_state:
         st.session_state.entrada_submitted = False
+    if "entrada_pending_confirmation" not in st.session_state:
+        st.session_state.entrada_pending_confirmation = False
+    if "entrada_confirmed_db_check" not in st.session_state:
+        st.session_state.entrada_confirmed_db_check = False
 
-    initialize_session_state(form_defaults)
+    initialize_prefixed_session_state("form_", form_defaults)
 
     # ========== BOTÓN DE INICIO ==========
     if st.button("📦 Iniciar nueva entrada"):
@@ -265,37 +246,26 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
         st.session_state.movement_items = []
         st.session_state.form_id_proyecto = None
         st.session_state.entrada_submitted = False
+        st.session_state.entrada_pending_confirmation = False
+        st.session_state.entrada_confirmed_db_check = False
 
     # ========== FORMULARIO ABIERTO ==========
     if st.session_state.current_form == "open":
         st.subheader("📋 Nueva Entrada de Inventario")
 
         # --- Selección de proyecto ---
-        st.subheader("Información del Proyecto")
-        proyecto_options = {
-            f"{v[1]} | {v[0]}": k for k, v in proyectos_info.items()
-        }
-        proyecto_selected = st.selectbox(
-            "Selecciona un proyecto:",
-            options=list(proyecto_options.keys()),
-            key="form_proyecto_select",
+        render_project_selector(
+            proyectos_info=proyectos_info,
+            select_label="Selecciona un proyecto:",
+            select_key="form_proyecto_select",
+            state_project_key="form_id_proyecto",
         )
 
-        if proyecto_selected:
-            id_proyecto = proyecto_options[proyecto_selected]
-            st.session_state.form_id_proyecto = id_proyecto
-            nombre_obra, c_c = proyectos_info[id_proyecto]
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Centro de Costo", c_c)
-            with col2:
-                st.metric("Nombre Obra", nombre_obra)
-
         # --- Responsable ---
-        st.session_state.form_responsable = st.text_input(
-            "Responsable de la entrada",
-            value=st.session_state.get("form_responsable", ""),
-            key="form_responsable_input",
+        render_responsable_input(
+            label="Responsable de la entrada",
+            state_key="form_responsable",
+            input_key="form_responsable_input",
         )
 
         st.divider()
@@ -362,7 +332,8 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
         with col2:
             if st.button("✅ Finalizar entrada"):
                 if st.session_state.movement_items:
-                    st.session_state.current_form = "closed"
+                    st.session_state.entrada_pending_confirmation = True
+                    
                     st.rerun()
                 else:
                     st.warning("Debe agregar al menos un item")
@@ -371,11 +342,24 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
             if st.button("❌ Cancelar"):
                 st.session_state.current_form = "closed"
                 st.session_state.movement_items = []
+                st.session_state.entrada_pending_confirmation = False
+                st.session_state.entrada_confirmed_db_check = False
+
+        if check_movement_db(
+            st.session_state.movement_items,
+            state_prefix="entrada",
+            dialog_title="Confirmar entrada",
+            responsable=st.session_state.get("form_responsable", ""),
+            responsable_warning="Debe ingresar el responsable de la entrada antes de confirmar.",
+        ):
+            st.session_state.current_form = "closed"
+            st.rerun()
 
     # Retornar datos del movimiento cuando estén listos
     if (
         st.session_state.current_form == "closed"
         and st.session_state.movement_items
+        and not st.session_state.get("entrada_pending_confirmation", False)
         and not st.session_state.entrada_submitted
     ):
         st.session_state.entrada_submitted = True
@@ -402,32 +386,7 @@ def display_recent_entrada_movements(proyectos_info):
     """
     try:
         movements = get_recent_movements("entrada", limit=5)
-
-        if movements:
-            for mov in movements:
-                proyecto = proyectos_info.get(
-                    mov["id_proyecto"], ("Sin proyecto", "N/A")
-                )
-                row1, row2, row3, row4 = st.columns(4)
-                with row1:
-                    st.write(f"Mov No. {mov['id_movimiento']}")
-                with row2:
-                    st.write(f"Fecha: {mov['fecha_hora'].strftime('%d/%m/%Y %H:%M') if mov['fecha_hora'] else 'N/A'}")
-                with row3:
-                    st.write(f"C.C: {proyecto[0]} {proyecto[1]}")
-                with row4:
-                    st.write(f"Responsable: {mov['responsable']}") if mov.get("responsable") else st.write("Responsable: N/A")
-
-
-                if mov["items"]:
-                    df = pd.DataFrame(mov["items"])
-                    st.dataframe(df, width="stretch")
-                else:
-                    st.write("No hay items en este movimiento.")
-
-                st.divider()
-        else:
-            st.write("No hay movimientos de entrada registrados.")
+        display_recent_movements_table(movements, proyectos_info)
 
     except Exception as e:
         st.error(f"Error al obtener movimientos de entrada: {e}")
@@ -445,24 +404,21 @@ def handle_form_result(result):
     Args:
         result (dict | None): Diccionario con 'movement_items' e 'id_proyecto', o None.
     """
-    if result is None:
-        return
-
-    movement_items = result["movement_items"]
-    id_proyecto = result["id_proyecto"]
-    responsable = result.get("responsable", "")
-
-    try:
-        add_movement_to_db(movement_items, id_proyecto, responsable=responsable)
-        st.success(f"✅ Movimiento registrado con {len(movement_items)} item(s)")
-        st.balloons()
-        # Limpiar estado del formulario
-        st.session_state.movement_items = []
-        st.session_state.current_form = "closed"
-        st.session_state.entrada_submitted = False
-    except Exception as e:
-        st.error(f"❌ Error al registrar movimiento: {e}")
-        st.session_state.entrada_submitted = False
+    handle_movement_submission(
+        result=result,
+        db_writer=lambda movement_items, id_proyecto, responsable: add_movement_to_db(
+            movement_items, id_proyecto, responsable=responsable
+        ),
+        success_message="✅ Movimiento registrado con {count} item(s)",
+        reset_state={
+            "movement_items": [],
+            "current_form": "closed",
+            "entrada_submitted": False,
+            "entrada_pending_confirmation": False,
+            "entrada_confirmed_db_check": False,
+        },
+        error_prefix="❌ Error al registrar movimiento",
+    )
 
 
 # =============================================================================

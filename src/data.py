@@ -8,6 +8,7 @@ Todas las funciones de consulta y manipulación de datos están centralizadas aq
 import streamlit as st  # Solo para manejo de caché, no para UI
 from datetime import datetime
 from io import BytesIO
+from xml.sax.saxutils import escape
 
 import pandas as pd
 
@@ -17,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from classes import (
@@ -27,7 +28,43 @@ from classes import (
     Proyectos,
     StockPuntas,
 )
-from utils import get_session
+from pdf_styles import (
+    PDF_CC_COLOR,
+    PDF_CC_FONT_SIZE,
+    PDF_COL_WIDTHS,
+    PDF_MATERIAL_FONT_SIZE,
+    PDF_MATERIAL_LEADING,
+    PDF_SUMMARY_COLOR,
+    PDF_SUMMARY_FONT_SIZE,
+    PDF_TABLE_BODY_FONT_SIZE,
+    PDF_TABLE_HEADER_FONT_SIZE,
+    PDF_TABLE_HEADER_PADDING,
+    PDF_TITLE_COLOR,
+    PDF_TITLE_FONT_SIZE,
+    PDF_ENTRADAS_COL_WIDTHS,
+    PDF_ENTRADAS_TOTAL_COLOR,
+    PDF_ENTRADAS_TOTAL_FONT_SIZE,
+    PDF_SALIDAS_COL_WIDTHS,
+    PDF_TABLE_GRID_COLOR,
+    PDF_TABLE_HEADER_COLOR,
+    PDF_TABLE_ROW_ALT_COLOR,
+    PDF_TABLE_ROW_BASE_COLOR,
+    PDF_TABLE_TEXT_COLOR,
+)
+from utils import get_session, LOGO_PATH
+
+def _draw_logo(canvas, doc):
+    canvas.saveState()
+    canvas.drawImage(
+        LOGO_PATH,
+        x=40,
+        y=doc.pagesize[1] - 60,
+        width=1.2 * inch,
+        height=0.5 * inch,
+        preserveAspectRatio=True,
+        mask="auto",
+    )
+    canvas.restoreState()
 
 
 def clear_cached_reference_data():
@@ -431,6 +468,7 @@ def add_movement_to_db(movement_items, id_proyecto, responsable):
             if item_data["is_new"]:
                 articulo = Articulos(
                     nombre=item_data["nombre_item"],
+                    num_catalogo=item_data.get("num_catalogo", ""),
                     tipo=item_data["tipo"],
                     precio_unitario=item_data["precio_unitario"],
                     unidad_medida=item_data["unidad_medida"],
@@ -877,12 +915,12 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
 
         result = []
         for item in agrupado.values():
-            item["diferencia"] = item["total_salida"] - item["total_entrada"]
-            costo_base = item["total_salida"] * item["precio_unitario"]
+            item["usado"] = item["total_salida"] - item["total_entrada"]
+            costo_herramienta = item["total_salida"] * item["precio_unitario"]
             if item["tipo"] == "herramienta":
-                item["costo_material_usado"] = round(costo_base * 0.05, 2)
+                item["costo_material_usado"] = costo_herramienta * 0.05 #depreciación del 5% por uso
             else:
-                item["costo_material_usado"] = round(costo_base, 2)
+                item["costo_material_usado"] = item["precio_unitario"] * item["usado"]
             result.append(item)
 
         result.sort(key=lambda x: (x["c_c"], x["material"]))
@@ -918,8 +956,8 @@ def create_comparacion_pdf(comparacion_data):
     title_style = ParagraphStyle(
         "CustomTitle",
         parent=styles["Heading1"],
-        fontSize=20,
-        textColor=colors.HexColor("#2ca02c"),
+        fontSize=PDF_TITLE_FONT_SIZE,
+        textColor=PDF_TITLE_COLOR,
         spaceAfter=20,
         alignment=1,
     )
@@ -936,6 +974,15 @@ def create_comparacion_pdf(comparacion_data):
     elements.append(Spacer(1, 0.3 * inch))
 
     if comparacion_data:
+        material_cell_style = ParagraphStyle(
+            "MaterialCell",
+            parent=styles["BodyText"],
+            fontSize=PDF_MATERIAL_FONT_SIZE,
+            leading=PDF_MATERIAL_LEADING,
+            alignment=0,
+            textColor=PDF_TABLE_TEXT_COLOR,
+        )
+
         # Agrupar por centro de costo
         ccs = {}
         for item in comparacion_data:
@@ -949,8 +996,8 @@ def create_comparacion_pdf(comparacion_data):
             cc_style = ParagraphStyle(
                 f"CC_{cc}",
                 parent=styles["Heading2"],
-                fontSize=14,
-                textColor=colors.HexColor("#2ca02c"),
+                fontSize=PDF_CC_FONT_SIZE,
+                textColor=PDF_CC_COLOR,
                 spaceAfter=10,
             )
             elements.append(Paragraph(f"Centro de Costo: {cc}", cc_style))
@@ -958,52 +1005,51 @@ def create_comparacion_pdf(comparacion_data):
 
             # Tabla
             table_data = [
-                ["Material", "Tipo", "Unidad", "Entradas", "Salidas", "Diferencia", "Costo Salida"]
+                [
+                    "Material",
+                    "Tipo",
+                    "Unidad",
+                    "Precio Unit.",
+                    "Salidas",
+                    "Entradas",
+                    "Usado",
+                    "Costo Material Usado",
+                ]
             ]
             subtotal_cc = 0
             for item in items:
                 subtotal_cc += item["costo_material_usado"]
                 table_data.append([
-                    item["material"][:25],
+                    Paragraph(escape(item["material"]), material_cell_style),
                     item["tipo"],
                     item["unidad_medida"],
-                    str(item["total_entrada"]),
+                    f"${(item['precio_unitario'] or 0):,.2f}",
                     str(item["total_salida"]),
-                    str(item["diferencia"]),
+                    str(item["total_entrada"]),
+                    str(item["usado"]),
                     f"${item['costo_material_usado']:,.2f}",
                 ])
 
             table = Table(
                 table_data,
-                colWidths=[
-                    1.5 * inch, 0.8 * inch, 0.6 * inch,
-                    0.8 * inch, 0.8 * inch, 0.8 * inch, 1.0 * inch,
-                ],
+                colWidths=PDF_COL_WIDTHS,
             )
             table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2ca02c")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("BACKGROUND", (0, 0), (-1, 0), PDF_TABLE_HEADER_COLOR),
+                ("TEXTCOLOR", (0, 0), (-1, -1), PDF_TABLE_TEXT_COLOR),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("ALIGN", (0, 1), (0, -1), "LEFT"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-                ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                ("FONTSIZE", (0, 1), (-1, -1), 8),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#e8f5e9")]),
+                ("FONTSIZE", (0, 0), (-1, 0), PDF_TABLE_HEADER_FONT_SIZE),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), PDF_TABLE_HEADER_PADDING),
+                ("GRID", (0, 0), (-1, -1), 1, PDF_TABLE_GRID_COLOR),
+                ("FONTSIZE", (0, 1), (-1, -1), PDF_TABLE_BODY_FONT_SIZE),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [PDF_TABLE_ROW_ALT_COLOR, PDF_TABLE_ROW_BASE_COLOR]),
             ]))
             elements.append(table)
 
-            # Subtotal por CC
-            subtotal_style = ParagraphStyle(
-                f"Subtotal_{cc}",
-                parent=styles["Normal"],
-                fontSize=10,
-                textColor=colors.HexColor("#2ca02c"),
-                alignment=2,
-            )
-            elements.append(
-                Paragraph(f"<b>Subtotal CC {cc}:</b> ${subtotal_cc:,.2f}", subtotal_style)
-            )
+            
             elements.append(Spacer(1, 0.3 * inch))
 
         # Resumen general
@@ -1013,14 +1059,13 @@ def create_comparacion_pdf(comparacion_data):
         summary_style = ParagraphStyle(
             "SummaryStyle",
             parent=styles["Normal"],
-            fontSize=12,
-            textColor=colors.HexColor("#2ca02c"),
+            fontSize=PDF_SUMMARY_FONT_SIZE,
+            textColor=PDF_SUMMARY_COLOR,
             alignment=2,
         )
         elements.append(
             Paragraph(
-                f"<b>Total Entradas:</b> {total_entradas} &nbsp; | &nbsp; "
-                f"<b>Total Salidas:</b> {total_salidas} &nbsp; | &nbsp; "
+                
                 f"<b>Costo Total:</b> ${total_costo:,.2f}",
                 summary_style,
             )
@@ -1030,7 +1075,7 @@ def create_comparacion_pdf(comparacion_data):
             Paragraph("No hay datos comparativos para mostrar.", styles["Normal"])
         )
 
-    doc.build(elements)
+    doc.build(elements, onFirstPage=_draw_logo, onLaterPages=_draw_logo)
     buffer.seek(0)
     return buffer
 
@@ -1111,7 +1156,7 @@ def create_comparacion_excel(comparacion_data):
     df.columns = [
         "C.C", "Material", "Tipo", "Unidad", "Precio Unitario",
         "Total Entradas", "Total Salidas",
-        "Diferencia", "Costo Salida",
+        "usado", "Costo Salida",
     ]
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -1147,8 +1192,8 @@ def create_entradas_pdf(entradas_data):
     title_style = ParagraphStyle(
         "CustomTitle",
         parent=styles["Heading1"],
-        fontSize=22,
-        textColor=colors.HexColor("#1f77b4"),
+        fontSize=PDF_TITLE_FONT_SIZE,
+        textColor=PDF_TITLE_COLOR,
         spaceAfter=20,
         alignment=1,
     )
@@ -1186,19 +1231,18 @@ def create_entradas_pdf(entradas_data):
 
         table = Table(
             table_data,
-            colWidths=[1.2 * inch, 0.6 * inch, 1.5 * inch, 0.8 * inch, 1 * inch, 1 * inch],
+            colWidths=PDF_COL_WIDTHS,
         )
         table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f77b4")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("BACKGROUND", (0, 0), (-1, 0), PDF_TABLE_HEADER_COLOR),
+            ("TEXTCOLOR", (0, 0), (-1, -1), PDF_TABLE_TEXT_COLOR),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), 11),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-            ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-            ("FONTSIZE", (0, 1), (-1, -1), 9),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f0f0f0")]),
+            ("FONTSIZE", (0, 0), (-1, 0), PDF_TABLE_HEADER_FONT_SIZE),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), PDF_TABLE_HEADER_PADDING),
+            ("GRID", (0, 0), (-1, -1), 1, PDF_TABLE_GRID_COLOR),
+            ("FONTSIZE", (0, 1), (-1, -1), PDF_TABLE_BODY_FONT_SIZE),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [PDF_TABLE_ROW_ALT_COLOR, PDF_TABLE_ROW_BASE_COLOR]),
         ]))
         elements.append(table)
         elements.append(Spacer(1, 0.3 * inch))
@@ -1207,8 +1251,8 @@ def create_entradas_pdf(entradas_data):
         total_style = ParagraphStyle(
             "TotalStyle",
             parent=styles["Normal"],
-            fontSize=12,
-            textColor=colors.HexColor("#1f77b4"),
+            fontSize=PDF_ENTRADAS_TOTAL_FONT_SIZE,
+            textColor=PDF_ENTRADAS_TOTAL_COLOR,
             alignment=2,
         )
         elements.append(
@@ -1219,7 +1263,7 @@ def create_entradas_pdf(entradas_data):
             Paragraph("No hay datos de entradas para mostrar.", styles["Normal"])
         )
 
-    doc.build(elements)
+    doc.build(elements, onFirstPage=_draw_logo, onLaterPages=_draw_logo)
     buffer.seek(0)
     return buffer
 
@@ -1251,8 +1295,8 @@ def create_salidas_pdf(salidas_data):
     title_style = ParagraphStyle(
         "CustomTitle",
         parent=styles["Heading1"],
-        fontSize=22,
-        textColor=colors.HexColor("#d62728"),
+        fontSize=PDF_TITLE_FONT_SIZE,
+        textColor=PDF_TITLE_COLOR,
         spaceAfter=20,
         alignment=1,
     )
@@ -1290,19 +1334,18 @@ def create_salidas_pdf(salidas_data):
 
         table = Table(
             table_data,
-            colWidths=[1.2 * inch, 0.6 * inch, 1.5 * inch, 1.2 * inch, 1.5 * inch],
+            colWidths=PDF_SALIDAS_COL_WIDTHS,
         )
         table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d62728")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("BACKGROUND", (0, 0), (-1, 0), PDF_TABLE_HEADER_COLOR),
+            ("TEXTCOLOR", (0, 0), (-1, -1), PDF_TABLE_TEXT_COLOR),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), 11),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#ffe6e6")),
-            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-            ("FONTSIZE", (0, 1), (-1, -1), 9),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#fff0f0")]),
+            ("FONTSIZE", (0, 0), (-1, 0), PDF_TABLE_HEADER_FONT_SIZE),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), PDF_TABLE_HEADER_PADDING),
+            ("GRID", (0, 0), (-1, -1), 1, PDF_TABLE_GRID_COLOR),
+            ("FONTSIZE", (0, 1), (-1, -1), PDF_TABLE_BODY_FONT_SIZE),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [PDF_TABLE_ROW_ALT_COLOR, PDF_TABLE_ROW_BASE_COLOR]),
         ]))
         elements.append(table)
         elements.append(Spacer(1, 0.3 * inch))
@@ -1311,8 +1354,8 @@ def create_salidas_pdf(salidas_data):
         summary_style = ParagraphStyle(
             "SummaryStyle",
             parent=styles["Normal"],
-            fontSize=12,
-            textColor=colors.HexColor("#d62728"),
+            fontSize=PDF_SUMMARY_FONT_SIZE,
+            textColor=PDF_SUMMARY_COLOR,
             alignment=2,
         )
         elements.append(
@@ -1325,6 +1368,6 @@ def create_salidas_pdf(salidas_data):
             Paragraph("No hay datos de salidas para mostrar.", styles["Normal"])
         )
 
-    doc.build(elements)
+    doc.build(elements, onFirstPage=_draw_logo, onLaterPages=_draw_logo)
     buffer.seek(0)
     return buffer

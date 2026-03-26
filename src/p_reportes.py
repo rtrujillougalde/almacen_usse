@@ -394,7 +394,7 @@ def reporte_comparacion_main():
             preview_df.columns = [
                 "C.C", "Material", "Tipo", "Unidad", "Precio Unit.",
                 "Total Entradas", "Total Salidas",
-                "Diferencia", "Costo material usado",
+                "Usado", "Costo material usado",
             ]
             st.dataframe(preview_df, width='stretch')
 
@@ -406,6 +406,15 @@ def reporte_comparacion_main():
             )
 
 def main():
-    reporte_entradas_main()
-    reporte_salidas_main()
-    reporte_comparacion_main()
+    tipo_reporte = st.selectbox(
+        "Selecciona el tipo de reporte",
+        options=["Entradas", "Salidas", "Comparativo"],
+        key="tipo_reporte_selector",
+    )
+
+    if tipo_reporte == "Entradas":
+        reporte_entradas_main()
+    elif tipo_reporte == "Salidas":
+        reporte_salidas_main()
+    elif tipo_reporte == "Comparativo":
+        reporte_comparacion_main()

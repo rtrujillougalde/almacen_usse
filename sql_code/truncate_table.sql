@@ -6,10 +6,10 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 
-ALTER TABLE IF EXISTS detalle_movimientos;
-ALTER TABLE IF EXISTS movimientos;
-ALTER TABLE IF EXISTS stock_puntas;
-ALTER TABLE IF EXISTS articulos;
-ALTER TABLE IF EXISTS proyectos;
+TRUNCATE TABLE detalle_movimientos;
+TRUNCATE TABLE movimientos;
+TRUNCATE TABLE stock_puntas;
+TRUNCATE TABLE articulos;
+TRUNCATE TABLE proyectos;
 
 SET FOREIGN_KEY_CHECKS = 1;
