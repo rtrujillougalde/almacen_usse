@@ -106,3 +106,4 @@ class StockPuntas(Base):
     id_articulo = Column(Integer, ForeignKey('articulos.id_articulo')) # Tipo de punta (e.g., punta de destornillador, punta de taladro, etc.)
     longitud = Column(Float) # Cantidad actual en stock
     nombre_punta = Column(String) # Nombre descriptivo de la punta (e.g., "Punta Phillips #2", "Punta de Taladro 5mm", etc.)
+    color = Column(String) # Color de la punta, útil para identificar visualmente diferentes tipos de puntas

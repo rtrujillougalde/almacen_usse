@@ -252,6 +252,7 @@ def get_available_puntas(id_articulo: int):
             StockPuntas.id_punta,
             StockPuntas.nombre_punta,
             StockPuntas.longitud,
+            StockPuntas.color,
         ).filter(
             StockPuntas.id_articulo == id_articulo,
             ~StockPuntas.id_punta.in_(used_puntas_subquery),
@@ -262,6 +263,7 @@ def get_available_puntas(id_articulo: int):
                 "id_punta": punta.id_punta,
                 "nombre_punta": punta.nombre_punta,
                 "longitud": punta.longitud,
+                "color": punta.color
             }
             for punta in puntas
         ]
@@ -490,6 +492,7 @@ def add_movement_to_db(movement_items, id_proyecto, responsable):
                         id_articulo=articulo.id_articulo,
                         nombre_punta=item_data["nombre_punta"],
                         longitud=item_data["longitud"],
+                        color = item_data["color"]
                     )
                     session.add(nueva_punta)
                     session.flush()
@@ -568,8 +571,10 @@ def get_recent_movements(tipo, limit=5):
             Articulos.nombre,
             Articulos.num_catalogo,
             Articulos.es_cable,
+            Articulos.unidad_medida,
             StockPuntas.nombre_punta,
             StockPuntas.longitud,
+            StockPuntas.color,
         ).join(
             Articulos, DetalleMovimiento.id_articulo == Articulos.id_articulo
         ).outerjoin(
@@ -594,8 +599,8 @@ def get_recent_movements(tipo, limit=5):
         for detalle in detalles:
             if detalle.es_cable:
                 if detalle.nombre_punta:
-                    item_info = f"{detalle.nombre} - {detalle.nombre_punta}"
-                    cantidad = f"{detalle.longitud} m"
+                    item_info = f"{detalle.nombre} - {detalle.nombre_punta} - {detalle.color}"
+                    cantidad = f"{detalle.longitud} {detalle.unidad_medida}(s)"
                 else:
                     item_info = f"{detalle.nombre} (punta no encontrada)"
                     cantidad = "N/A"

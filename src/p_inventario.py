@@ -141,6 +141,7 @@ def main():
                     {
                         "nombre de punta": punta["nombre_punta"],
                         "longitud": punta["longitud"],
+                        "color": punta["color"]
                     }
                     for punta in cable_puntas
                 ]

@@ -112,6 +112,8 @@ def display_cable_details_form(step=0.1):
             key="form_longitud_input",
         )
         st.session_state.form_es_cable = True
+        st.session_state.form_color_punta = st.text_input(
+            "Color del cable (opcional)")
 
 
 def display_quantity_form(key_suffix):
@@ -189,6 +191,7 @@ def gather_form_data(nombre_item):
         "nombre_punta": st.session_state.form_nombre_punta,
         "longitud": st.session_state.form_longitud,
         "cantidad": st.session_state.form_cantidad,
+        "color": st.session_state.form_color_punta
     }
 
 
@@ -224,6 +227,7 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
         "longitud": 0.0,
         "cantidad": 0,
         "id_proyecto": None,
+        "color": None,
     }
 
     # Inicializar estado del movimiento
@@ -280,7 +284,7 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
                     if item.get("es_cable") or (articulo and articulo.es_cable):
                         st.write(
                             f"{idx + 1}. {item['nombre_item']} - "
-                            f"{item['nombre_punta']} - Longitud: {item['longitud']} m"
+                            f"{item['nombre_punta']} - Longitud: {item['longitud']} m - Color: {item.get('color', 'N/A')}"
                         )
                     else:
                         st.write(

@@ -36,6 +36,7 @@ CREATE TABLE `stock_puntas` (
   `id_articulo` int NOT NULL,
   `nombre_punta` varchar(45) DEFAULT NULL,
   `longitud` decimal(10,2) NOT NULL,
+  `color` varchar(30) DEFAULT NULL,
   PRIMARY KEY (`id_punta`),
   KEY `inventario_stock_ibfk_1` (`id_articulo`),
   CONSTRAINT `stock_puntas_ibfk_1` FOREIGN KEY (`id_articulo`) REFERENCES `articulos` (`id_articulo`)
