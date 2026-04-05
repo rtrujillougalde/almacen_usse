@@ -18,8 +18,16 @@ from data import (
 
 def highlight_low_stock(row):
             if row["cantidad en stock"] < row["stock minimo"]:
-                return ["background-color: #ffcccc"] * len(row)
+                return ["background-color: #e7192b"] * len(row)
             return [""] * len(row)
+
+
+def clear_inventory_filters():
+    """Resetea el estado de filtros de inventario sin violar reglas de Streamlit."""
+    st.session_state.inventario_categoria_filter = "Todas"
+    st.session_state.inventario_tipo_filter = "Todos"
+    st.session_state.inventario_nombre_filter = ""
+    st.session_state.inventario_filtros_activos = False
 
 def main():
     """
@@ -36,26 +44,76 @@ def main():
 
         df = pd.DataFrame(data)
 
-        
+        if "inventario_filtros_activos" not in st.session_state:
+            st.session_state.inventario_filtros_activos = False
 
-        styled_df = df.style.apply(highlight_low_stock, axis=1).format(
+        categorias = sorted(df["categoria"].dropna().unique().tolist()) if "categoria" in df.columns else []
+        tipos = sorted(df["tipo"].dropna().unique().tolist()) if "tipo" in df.columns else []
+
+        st.markdown("### Filtros")
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            categoria_filter = st.selectbox(
+                "Categoria",
+                options=["Todas"] + categorias,
+                key="inventario_categoria_filter",
+            )
+        with col_f2:
+            tipo_filter = st.selectbox(
+                "Tipo",
+                options=["Todos"] + tipos,
+                key="inventario_tipo_filter",
+            )
+        with col_f3:
+            nombre_filter = st.text_input(
+                "Nombre",
+                key="inventario_nombre_filter",
+                placeholder="Buscar por nombre...",
+            )
+
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            if st.button("Aplicar filtro", key="inventario_aplicar_filtro"):
+                st.session_state.inventario_filtros_activos = True
+        with col_b2:
+            st.button(
+                "Borrar filtros",
+                key="inventario_borrar_filtros",
+                on_click=clear_inventory_filters,
+            )
+
+        filtered_df = df.copy()
+        if st.session_state.inventario_filtros_activos:
+            if categoria_filter != "Todas" and "categoria" in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df["categoria"] == categoria_filter]
+            if tipo_filter != "Todos" and "tipo" in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df["tipo"] == tipo_filter]
+            if nombre_filter.strip():
+                filtered_df = filtered_df[
+                    filtered_df["nombre"].astype(str).str.contains(nombre_filter.strip(), case=False, na=False)
+                ]
+
+        st.caption(f"Resultados: {len(filtered_df)}")
+
+        styled_df = filtered_df.style.apply(highlight_low_stock, axis=1).format(
             {"cantidad en stock": "{:.2f}", "stock minimo": "{:.2f}"}
         )
         if st.session_state.user_role == "consulta":
             
             st.dataframe(styled_df, hide_index=True, width='stretch')
         else:
+            filtered_data = filtered_df.to_dict("records")
         
             edited_data = st.data_editor(
-                data, hide_index=True,
+                filtered_data, hide_index=True,
                 width='stretch',
-                disabled=["id","cantidad en stock"]  # No permitir editar el ID
+                disabled=["id", "cantidad en stock", "tipo", "categoria"]  # No permitir editar columnas de referencia
             )
 
             # Guardar cambios si hubo edición
-            if edited_data != data:
+            if edited_data != filtered_data:
                 try:
-                    for edited_row, original_row in zip(edited_data, data):
+                    for edited_row, original_row in zip(edited_data, filtered_data):
                         if edited_row != original_row:
                             update_articulo(
                                 id_articulo=edited_row["id"],

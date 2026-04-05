@@ -98,6 +98,7 @@ def get_all_articulos():
                 "cantidad en stock": round(a.cantidad_en_stock, 2) if a.cantidad_en_stock is not None else 0.00,
                 "unidad de medida": a.unidad_medida,
                 "stock minimo": round(a.stock_minimo, 2) if a.stock_minimo is not None else 0.00,
+                "tipo": a.tipo.value if a.tipo else None,
                 "categoria": a.categoria.value if a.categoria else None,
             }
             for a in articulos
@@ -719,14 +720,14 @@ def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
 # REPORTES - CONSULTAS
 # =============================================================================
 
-def get_entradas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
+def get_entradas_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
     """
     Obtiene datos de entradas para generación de reportes.
 
     Args:
         fecha_inicio (str, optional): Fecha de inicio en formato 'YYYY-MM-DD'.
         fecha_fin (str, optional): Fecha de fin en formato 'YYYY-MM-DD'.
-        cc_filter (int | list[int], optional): Centro(s) de costo a filtrar.
+        cc_selected (int | list[int], optional): Centro(s) de costo a filtrar.
 
     Returns:
         list[tuple]: Lista de tuplas (fecha_hora, c_c, nombre, cantidad,
@@ -763,25 +764,25 @@ def get_entradas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
             )
 
         # Filtro de centro de costo
-        if cc_filter is not None:
-            if isinstance(cc_filter, list):
-                query = query.filter(Proyectos.c_c.in_(cc_filter))
+        if cc_selected is not None:
+            if isinstance(cc_selected, list):
+                query = query.filter(Proyectos.c_c.in_(cc_selected))
             else:
-                query = query.filter(Proyectos.c_c == cc_filter)
+                query = query.filter(Proyectos.c_c == cc_selected)
 
         return query.order_by(Movimientos.fecha_hora.desc()).all()
     finally:
         session.close()
 
 
-def get_salidas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
+def get_salidas_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
     """
     Obtiene datos de salidas para generación de reportes.
 
     Args:
         fecha_inicio (str, optional): Fecha de inicio en formato 'YYYY-MM-DD'.
         fecha_fin (str, optional): Fecha de fin en formato 'YYYY-MM-DD'.
-        cc_filter (int | list[int], optional): Centro(s) de costo a filtrar.
+        cc_selected (int | list[int], optional): Centro(s) de costo a filtrar.
 
     Returns:
         list[tuple]: Lista de tuplas (fecha_hora, c_c, nombre, cantidad,
@@ -821,11 +822,11 @@ def get_salidas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
             )
 
         # Filtro de centro de costo
-        if cc_filter is not None:
-            if isinstance(cc_filter, list):
-                query = query.filter(Proyectos.c_c.in_(cc_filter))
+        if cc_selected is not None:
+            if isinstance(cc_selected, list):
+                query = query.filter(Proyectos.c_c.in_(cc_selected))
             else:
-                query = query.filter(Proyectos.c_c == cc_filter)
+                query = query.filter(Proyectos.c_c == cc_selected)
 
         return query.order_by(Movimientos.fecha_hora.desc()).all()
     finally:
@@ -836,7 +837,7 @@ def get_salidas_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
 # REPORTES - GENERACIÓN DE PDF
 # =============================================================================
 
-def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
+def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
     """
     Obtiene datos agrupados de entradas y salidas por artículo para un centro de costo,
     permitiendo comparar cuánto entró vs cuánto salió.
@@ -844,7 +845,7 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
     Args:
         fecha_inicio (str, optional): Fecha de inicio 'YYYY-MM-DD'.
         fecha_fin (str, optional): Fecha de fin 'YYYY-MM-DD'.
-        cc_filter (int | list[int], optional): Centro(s) de costo a filtrar.
+        cc_selected (int | list[int], optional): Centro(s) de costo a filtrar.
 
     Returns:
         list[dict]: Lista de diccionarios con campos:
@@ -859,12 +860,12 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
                 func.date(Movimientos.fecha_hora) <= fecha_fin,
             ]
 
-        cc_filters = []
-        if cc_filter is not None:
-            if isinstance(cc_filter, list):
-                cc_filters = [Proyectos.c_c.in_(cc_filter)]
+        cc_selecteds = []
+        if cc_selected is not None:
+            if isinstance(cc_selected, list):
+                cc_selecteds = [Proyectos.c_c.in_(cc_selected)]
             else:
-                cc_filters = [Proyectos.c_c == cc_filter]
+                cc_selecteds = [Proyectos.c_c == cc_selected]
 
         base_query = (
             session.query(
@@ -879,7 +880,7 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_filter=None):
             .join(DetalleMovimiento, Movimientos.id_movimiento == DetalleMovimiento.id_movimiento)
             .join(Articulos, DetalleMovimiento.id_articulo == Articulos.id_articulo)
             .join(Proyectos, Movimientos.id_proyecto == Proyectos.id_proyecto)
-            .filter(*date_filters, *cc_filters)
+            .filter(*date_filters, *cc_selecteds)
             .group_by(
                 Proyectos.c_c,
                 Articulos.nombre,

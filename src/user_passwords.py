@@ -195,6 +195,7 @@ def logout():
     st.session_state.logged_in = False
     st.session_state.authenticated_user = None
     st.session_state.user_role = None
+    st.rerun()
 
 if __name__ == "__main__":
     print(hash_password("consul?"))
