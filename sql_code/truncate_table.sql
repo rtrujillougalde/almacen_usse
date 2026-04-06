@@ -11,5 +11,6 @@ TRUNCATE TABLE movimientos;
 TRUNCATE TABLE stock_puntas;
 TRUNCATE TABLE articulos;
 TRUNCATE TABLE proyectos;
+TRUNCATE TABLE proveedores;
 
 SET FOREIGN_KEY_CHECKS = 1;

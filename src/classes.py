@@ -58,9 +58,23 @@ class TipoEnum(enum.Enum):
     material = "material"
     herramienta = "herramienta"
 
+
 class TipoMovimientoEnum(enum.Enum):
     entrada = "entrada"
     salida = "salida"
+
+class AlmacenEnum(enum.Enum):
+    oficina = "oficina"
+    uno = "1"
+    dos = "2"
+    tres = "3"
+    dormitorio = "dormitorios"
+
+class UbicacionEnum(enum.Enum):
+    nivel_1 = "nivel_1"
+    nivel_2 = "nivel_2"
+    planta_baja = "planta_baja"
+    estante_compras = "estante_compras"
 
 class Articulos(Base):
     __tablename__ = 'articulos'
@@ -74,6 +88,8 @@ class Articulos(Base):
     categoria = Column(Enum(CatEnum)) # 'cable' o 'componente'
     stock_minimo = Column(Float) # Cantidad mínima para alertas de stock bajo
     precio_unitario = Column(Float) # Precio por unidad, útil para calcular el valor total del inventario
+    almacen = Column(Enum(AlmacenEnum)) # Ubicación del artículo en el almacén
+    ubicacion = Column(Enum(UbicacionEnum)) # Ubicación específica dentro del almacén (e.g., "nivel_1", "nivel_2", "planta_baja", "estante_compras")
     # Add other columns as needed 
 
 class DetalleMovimiento(Base):
@@ -107,3 +123,14 @@ class StockPuntas(Base):
     longitud = Column(Float) # Cantidad actual en stock
     nombre_punta = Column(String) # Nombre descriptivo de la punta (e.g., "Punta Phillips #2", "Punta de Taladro 5mm", etc.)
     color = Column(String) # Color de la punta, útil para identificar visualmente diferentes tipos de puntas
+
+class Proveedores(Base):
+    __tablename__ = 'proveedores'
+    id_proveedor = Column(Integer, primary_key=True)
+    nombre = Column(String)
+    telefono = Column(String) # Número de teléfono del proveedor
+    email = Column(String) # Correo electrónico del proveedor
+    contacto = Column(String) # Información de contacto del proveedor (e.g., número de teléfono, correo electrónico, etc.)
+    direccion = Column(String) # Dirección física del proveedor
+    pagina_web = Column(String) # Página web del proveedor, si aplica
+    notas = Column(String) # Cualquier información adicional relevante sobre el proveedor (e.g., condiciones de pago, tiempos de entrega, etc.)

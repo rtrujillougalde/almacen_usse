@@ -1,7 +1,20 @@
+CREATE TABLE `proveedores` (
+  `id_proveedor` int NOT NULL,
+  `nombre` varchar(60) DEFAULT NULL,
+  `telefono` varchar(45) DEFAULT NULL,
+  `direccion` varchar(45) DEFAULT NULL,
+  `pagina_web` varchar(45) DEFAULT NULL,
+  `contacto` varchar(45) DEFAULT NULL,
+  `notas` varchar(100) DEFAULT NULL,
+  `email` varchar(60) DEFAULT NULL,
+  PRIMARY KEY (`id_proveedor`),
+  UNIQUE KEY `idproveedores_UNIQUE` (`id_proveedor`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE `articulos` (
   `id_articulo` int NOT NULL AUTO_INCREMENT,
   `nombre` varchar(100) NOT NULL,
-  `catalogo` varchar(100),
+  `num_catalogo` varchar(100) DEFAULT NULL,
   `tipo` enum('material','herramienta') NOT NULL,
   `cantidad_en_stock` float DEFAULT NULL,
   `unidad_medida` varchar(50) CHARACTER SET armscii8 COLLATE armscii8_general_ci DEFAULT NULL,
@@ -9,8 +22,12 @@ CREATE TABLE `articulos` (
   `categoria` enum('albañileria','aire_acondicionado','aislantes','almacen_dormitorios','alumbrado','baterias','c_d','cables','calentadores','canalizaciones','charolas','cinchos','conductor','contactos','contactos_regulados','control_almacen','control_acceso','datos','eléctrico','equipo_medición','equipo_protección','fibra_óptica','fuse_panel','fusibles','gasolina','general','herramienta','herrería','interruptores','kit_cursos','limpieza','miscelaneos','motores','papelería','pintura','planta_emergencia','plomeria','racks','referencia','registros','regletas','seguridad','soportes','tablaroca','tableros','tierras','tornilleria','zapatas') DEFAULT NULL,
   `stock_minimo` float DEFAULT NULL,
   `precio_unitario` float DEFAULT NULL,
-  PRIMARY KEY (`id_articulo`)
-) ;
+  `proveedor` int DEFAULT NULL,
+  PRIMARY KEY (`id_articulo`),
+  KEY `proveedor_id_idx` (`proveedor`),
+  CONSTRAINT `proveedor_id` FOREIGN KEY (`proveedor`) REFERENCES `proveedores` (`id_proveedor`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE `proyectos` (
   `id_proyecto` int NOT NULL AUTO_INCREMENT,
   `c_c` int NOT NULL,
