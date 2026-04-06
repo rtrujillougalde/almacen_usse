@@ -7,7 +7,7 @@ Toda la lógica de acceso a datos se delega al módulo data.py.
 
 import streamlit as st
 
-from data import add_proyecto
+from data import add_proyecto, get_proyectos_table_data
 
 
 def main():
@@ -16,7 +16,15 @@ def main():
     Muestra un botón para abrir el formulario de nuevo proyecto
     y gestiona su creación en la base de datos.
     """
-    st.title("Gestión de Proyectos")
+    st.title("Proyectos")
+
+    # Tabla de proyectos existentes
+    proyectos_data = get_proyectos_table_data()
+    st.subheader("Proyectos registrados")
+    if proyectos_data:
+        st.dataframe(proyectos_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("Aún no hay proyectos registrados.")
 
     # Inicializar estado de visibilidad del formulario
     if "mostrar_form_proyecto" not in st.session_state:

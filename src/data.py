@@ -7,19 +7,9 @@ Todas las funciones de consulta y manipulación de datos están centralizadas aq
 """
 import streamlit as st  # Solo para manejo de caché, no para UI
 from datetime import datetime
-from io import BytesIO
-from xml.sax.saxutils import escape
-
-import pandas as pd
 
 from sqlalchemy import and_, func
 from sqlalchemy.orm import sessionmaker
-
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from classes import (
     Articulos,
@@ -28,52 +18,23 @@ from classes import (
     Proyectos,
     StockPuntas,
 )
-from pdf_styles import (
-    PDF_CC_COLOR,
-    PDF_CC_FONT_SIZE,
-    PDF_COL_WIDTHS,
-    PDF_MATERIAL_FONT_SIZE,
-    PDF_MATERIAL_LEADING,
-    PDF_SUMMARY_COLOR,
-    PDF_SUMMARY_FONT_SIZE,
-    PDF_TABLE_BODY_FONT_SIZE,
-    PDF_TABLE_HEADER_FONT_SIZE,
-    PDF_TABLE_HEADER_PADDING,
-    PDF_TITLE_COLOR,
-    PDF_TITLE_FONT_SIZE,
-    PDF_ENTRADAS_COL_WIDTHS,
-    PDF_ENTRADAS_TOTAL_COLOR,
-    PDF_ENTRADAS_TOTAL_FONT_SIZE,
-    PDF_SALIDAS_COL_WIDTHS,
-    PDF_TABLE_GRID_COLOR,
-    PDF_TABLE_HEADER_COLOR,
-    PDF_TABLE_ROW_ALT_COLOR,
-    PDF_TABLE_ROW_BASE_COLOR,
-    PDF_TABLE_TEXT_COLOR,
-)
-from utils import get_session, LOGO_PATH
-
-def _draw_logo(canvas, doc):
-    canvas.saveState()
-    canvas.drawImage(
-        LOGO_PATH,
-        x=40,
-        y=doc.pagesize[1] - 60,
-        width=1.2 * inch,
-        height=0.5 * inch,
-        preserveAspectRatio=True,
-        mask="auto",
-    )
-    canvas.restoreState()
+from utils import get_session
 
 
 def clear_cached_reference_data():
     """Limpia caches de lectura afectados por escrituras de inventario."""
-    get_all_articulos.clear()
-    get_all_articulo_names.clear()
-    get_cable_names.clear()
-    get_available_puntas.clear()
-    get_proyectos_info.clear()
+    cached_funcs = [
+        get_all_articulos,
+        get_all_articulo_names,
+        get_cable_names,
+        get_available_puntas,
+        get_proyectos_info,
+        get_proyectos_table_data,
+    ]
+    for fn in cached_funcs:
+        clear_method = getattr(fn, "clear", None)
+        if callable(clear_method):
+            clear_method()
 
 
 # =============================================================================
@@ -354,6 +315,30 @@ def get_proyectos_info():
         session.close()
 
 
+@st.cache_data(ttl=300)
+def get_proyectos_table_data():
+    """
+    Obtiene los proyectos en formato tabular para la UI.
+
+    Returns:
+        list[dict]: Lista de diccionarios con id, centro de costo, obra y encargado.
+    """
+    session = get_session()
+    try:
+        proyectos = session.query(Proyectos).order_by(Proyectos.c_c, Proyectos.nombre_obra).all()
+        return [
+            {
+                
+                "C.C": p.c_c,
+                "Obra": p.nombre_obra,
+                "Encargado": p.encargado,
+            }
+            for p in proyectos
+        ]
+    finally:
+        session.close()
+
+
 def add_proyecto(c_c, nombre_obra, encargado):
     """
     Agrega un nuevo proyecto a la base de datos.
@@ -376,6 +361,7 @@ def add_proyecto(c_c, nombre_obra, encargado):
         )
         session.add(nuevo_proyecto)
         session.commit()
+        clear_cached_reference_data()
         return nuevo_proyecto
     except Exception:
         session.rollback()
@@ -725,7 +711,7 @@ def add_salida_to_db(movement_items, id_proyecto=None, responsable=None):
 # REPORTES - CONSULTAS
 # =============================================================================
 
-def get_entradas_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
+def get_report_data(fecha_inicio=None, fecha_fin=None, cc_selected=None, movement_type="entrada"):
     """
     Obtiene datos de entradas para generación de reportes.
 
@@ -749,7 +735,7 @@ def get_entradas_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
             Articulos.nombre,
             DetalleMovimiento.cantidad,
             Articulos.precio_unitario,
-            Movimientos.observaciones,
+            Articulos.unidad_medida
         ).join(
             DetalleMovimiento,
             Movimientos.id_movimiento == DetalleMovimiento.id_movimiento,
@@ -757,65 +743,7 @@ def get_entradas_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
             Articulos, DetalleMovimiento.id_articulo == Articulos.id_articulo
         ).join(
             Proyectos, Movimientos.id_proyecto == Proyectos.id_proyecto
-        ).filter(Movimientos.tipo == "entrada")
-
-        # Filtros de fecha
-        if fecha_inicio and fecha_fin:
-            query = query.filter(
-                and_(
-                    func.date(Movimientos.fecha_hora) >= fecha_inicio,
-                    func.date(Movimientos.fecha_hora) <= fecha_fin,
-                )
-            )
-
-        # Filtro de centro de costo
-        if cc_selected is not None:
-            if isinstance(cc_selected, list):
-                query = query.filter(Proyectos.c_c.in_(cc_selected))
-            else:
-                query = query.filter(Proyectos.c_c == cc_selected)
-
-        return query.order_by(Movimientos.fecha_hora.desc()).all()
-    finally:
-        session.close()
-
-
-def get_salidas_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
-    """
-    Obtiene datos de salidas para generación de reportes.
-
-    Args:
-        fecha_inicio (str, optional): Fecha de inicio en formato 'YYYY-MM-DD'.
-        fecha_fin (str, optional): Fecha de fin en formato 'YYYY-MM-DD'.
-        cc_selected (int | list[int], optional): Centro(s) de costo a filtrar.
-
-    Returns:
-        list[tuple]: Lista de tuplas (fecha_hora, c_c, nombre, cantidad,
-                     nombre_punta, longitud, observaciones).
-
-    Raises:
-        Exception: Si ocurre un error en la consulta.
-    """
-    session = get_session()
-    try:
-        query = session.query(
-            Movimientos.fecha_hora,
-            Proyectos.c_c,
-            Articulos.nombre,
-            DetalleMovimiento.cantidad,
-            StockPuntas.nombre_punta,
-            StockPuntas.longitud,
-            Movimientos.observaciones,
-        ).join(
-            DetalleMovimiento,
-            Movimientos.id_movimiento == DetalleMovimiento.id_movimiento,
-        ).join(
-            Articulos, DetalleMovimiento.id_articulo == Articulos.id_articulo
-        ).join(
-            Proyectos, Movimientos.id_proyecto == Proyectos.id_proyecto
-        ).outerjoin(
-            StockPuntas, DetalleMovimiento.id_punta == StockPuntas.id_punta
-        ).filter(Movimientos.tipo == "salida")
+        ).filter(Movimientos.tipo == movement_type)
 
         # Filtros de fecha
         if fecha_inicio and fecha_fin:
@@ -935,445 +863,3 @@ def get_comparacion_data(fecha_inicio=None, fecha_fin=None, cc_selected=None):
         session.close()
 
 
-def create_comparacion_pdf(comparacion_data):
-    """
-    Genera un PDF comparativo de entradas vs salidas por centro de costo.
-
-    Args:
-        comparacion_data (list[dict]): Datos obtenidos con get_comparacion_data().
-
-    Returns:
-        BytesIO: Buffer con el contenido del PDF generado.
-    """
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        rightMargin=40,
-        leftMargin=40,
-        topMargin=72,
-        bottomMargin=18,
-    )
-
-    elements = []
-    styles = getSampleStyleSheet()
-
-    # Título
-    title_style = ParagraphStyle(
-        "CustomTitle",
-        parent=styles["Heading1"],
-        fontSize=PDF_TITLE_FONT_SIZE,
-        textColor=PDF_TITLE_COLOR,
-        spaceAfter=20,
-        alignment=1,
-    )
-    elements.append(Paragraph("Reporte Comparativo: Entradas vs Salidas", title_style))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    # Fecha de generación
-    elements.append(
-        Paragraph(
-            f"<b>Fecha de Generación:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-            styles["Normal"],
-        )
-    )
-    elements.append(Spacer(1, 0.3 * inch))
-
-    if comparacion_data:
-        material_cell_style = ParagraphStyle(
-            "MaterialCell",
-            parent=styles["BodyText"],
-            fontSize=PDF_MATERIAL_FONT_SIZE,
-            leading=PDF_MATERIAL_LEADING,
-            alignment=0,
-            textColor=PDF_TABLE_TEXT_COLOR,
-        )
-
-        # Agrupar por centro de costo
-        ccs = {}
-        for item in comparacion_data:
-            cc = item["c_c"]
-            if cc not in ccs:
-                ccs[cc] = []
-            ccs[cc].append(item)
-
-        for cc, items in sorted(ccs.items()):
-            # Subtítulo por CC
-            cc_style = ParagraphStyle(
-                f"CC_{cc}",
-                parent=styles["Heading2"],
-                fontSize=PDF_CC_FONT_SIZE,
-                textColor=PDF_CC_COLOR,
-                spaceAfter=10,
-            )
-            elements.append(Paragraph(f"Centro de Costo: {cc}", cc_style))
-            elements.append(Spacer(1, 0.1 * inch))
-
-            # Tabla
-            table_data = [
-                [
-                    "Material",
-                    "Tipo",
-                    "Unidad",
-                    "Precio Unit.",
-                    "Salidas",
-                    "Entradas",
-                    "Usado",
-                    "Costo Material Usado",
-                ]
-            ]
-            subtotal_cc = 0
-            for item in items:
-                subtotal_cc += item["costo_material_usado"]
-                table_data.append([
-                    Paragraph(escape(item["material"]), material_cell_style),
-                    item["tipo"],
-                    item["unidad_medida"],
-                    f"${(item['precio_unitario'] or 0):,.2f}",
-                    str(item["total_salida"]),
-                    str(item["total_entrada"]),
-                    str(item["usado"]),
-                    f"${item['costo_material_usado']:,.2f}",
-                ])
-
-            table = Table(
-                table_data,
-                colWidths=PDF_COL_WIDTHS,
-            )
-            table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), PDF_TABLE_HEADER_COLOR),
-                ("TEXTCOLOR", (0, 0), (-1, -1), PDF_TABLE_TEXT_COLOR),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("ALIGN", (0, 1), (0, -1), "LEFT"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), PDF_TABLE_HEADER_FONT_SIZE),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), PDF_TABLE_HEADER_PADDING),
-                ("GRID", (0, 0), (-1, -1), 1, PDF_TABLE_GRID_COLOR),
-                ("FONTSIZE", (0, 1), (-1, -1), PDF_TABLE_BODY_FONT_SIZE),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [PDF_TABLE_ROW_ALT_COLOR, PDF_TABLE_ROW_BASE_COLOR]),
-            ]))
-            elements.append(table)
-
-            
-            elements.append(Spacer(1, 0.3 * inch))
-
-        # Resumen general
-        total_entradas = sum(i["total_entrada"] for i in comparacion_data)
-        total_salidas = sum(i["total_salida"] for i in comparacion_data)
-        total_costo = sum(i["costo_material_usado"] for i in comparacion_data)
-        summary_style = ParagraphStyle(
-            "SummaryStyle",
-            parent=styles["Normal"],
-            fontSize=PDF_SUMMARY_FONT_SIZE,
-            textColor=PDF_SUMMARY_COLOR,
-            alignment=2,
-        )
-        elements.append(
-            Paragraph(
-                
-                f"<b>Costo Total:</b> ${total_costo:,.2f}",
-                summary_style,
-            )
-        )
-    else:
-        elements.append(
-            Paragraph("No hay datos comparativos para mostrar.", styles["Normal"])
-        )
-
-    doc.build(elements, onFirstPage=_draw_logo, onLaterPages=_draw_logo)
-    buffer.seek(0)
-    return buffer
-
-
-def create_entradas_excel(entradas_data):
-    """
-    Genera un archivo Excel con los datos de entradas.
-
-    Args:
-        entradas_data (list[tuple]): Datos de entradas obtenidos con get_entradas_data().
-
-    Returns:
-        BytesIO: Buffer con el contenido del Excel generado.
-    """
-    rows = []
-    for entrada in entradas_data:
-        fecha_hora, cc, material, cantidad, precio_unitario, observaciones = entrada
-        total = cantidad * (precio_unitario or 0)
-        rows.append({
-            "Fecha/Hora": fecha_hora.strftime("%Y-%m-%d %H:%M:%S") if fecha_hora else "",
-            "C.C": cc,
-            "Material": material,
-            "Cantidad": cantidad,
-            "Precio Unitario": precio_unitario or 0,
-            "Total": total,
-        })
-    df = pd.DataFrame(rows)
-    buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Entradas")
-    buffer.seek(0)
-    return buffer
-
-
-def create_salidas_excel(salidas_data):
-    """
-    Genera un archivo Excel con los datos de salidas.
-
-    Args:
-        salidas_data (list[tuple]): Datos de salidas obtenidos con get_salidas_data().
-
-    Returns:
-        BytesIO: Buffer con el contenido del Excel generado.
-    """
-    rows = []
-    for salida in salidas_data:
-        fecha_hora, cc, material, cantidad, nombre_punta, longitud, observaciones = salida
-        if nombre_punta:
-            detalle = f"{nombre_punta} ({longitud}m)" if longitud else nombre_punta
-        else:
-            detalle = f"{cantidad} unidades"
-        rows.append({
-            "Fecha/Hora": fecha_hora.strftime("%Y-%m-%d %H:%M:%S") if fecha_hora else "",
-            "C.C": cc,
-            "Material": material,
-            "Cantidad": cantidad if not nombre_punta else "Punta",
-            "Detalle": detalle,
-        })
-    df = pd.DataFrame(rows)
-    buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Salidas")
-    buffer.seek(0)
-    return buffer
-
-
-def create_comparacion_excel(comparacion_data):
-    """
-    Genera un archivo Excel comparativo de entradas vs salidas.
-
-    Args:
-        comparacion_data (list[dict]): Datos obtenidos con get_comparacion_data().
-
-    Returns:
-        BytesIO: Buffer con el contenido del Excel generado.
-    """
-    df = pd.DataFrame(comparacion_data)
-    df.columns = [
-        "C.C", "Material", "Tipo", "Unidad", "Precio Unitario",
-        "Total Entradas", "Total Salidas",
-        "usado", "Costo Salida",
-    ]
-    buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Comparativo")
-    buffer.seek(0)
-    return buffer
-
-
-def create_entradas_pdf(entradas_data):
-    """
-    Genera un PDF con los datos de entradas.
-
-    Args:
-        entradas_data (list[tuple]): Datos de entradas obtenidos con get_entradas_data().
-
-    Returns:
-        BytesIO: Buffer con el contenido del PDF generado.
-    """
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        rightMargin=50,
-        leftMargin=50,
-        topMargin=72,
-        bottomMargin=18,
-    )
-
-    elements = []
-    styles = getSampleStyleSheet()
-
-    # Título
-    title_style = ParagraphStyle(
-        "CustomTitle",
-        parent=styles["Heading1"],
-        fontSize=PDF_TITLE_FONT_SIZE,
-        textColor=PDF_TITLE_COLOR,
-        spaceAfter=20,
-        alignment=1,
-    )
-    elements.append(Paragraph("Reporte de Entradas de Almacén", title_style))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    # Fecha de generación
-    elements.append(
-        Paragraph(
-            f"<b>Fecha de Generación:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-            styles["Normal"],
-        )
-    )
-    elements.append(Spacer(1, 0.3 * inch))
-
-    if entradas_data:
-        # Encabezados de la tabla
-        table_data = [
-            ["Fecha/Hora", "C.C", "Material", "Cantidad", "Precio Unit.", "Total"]
-        ]
-        total_general = 0
-
-        for entrada in entradas_data:
-            fecha_hora, cc, material, cantidad, precio_unitario, _ = entrada
-            total = cantidad * (precio_unitario or 0)
-            total_general += total
-            table_data.append([
-                fecha_hora.strftime("%Y-%m-%d %H:%M") if fecha_hora else "",
-                str(cc),
-                material[:30],
-                str(cantidad),
-                f"${precio_unitario:.2f}" if precio_unitario else "$0.00",
-                f"${total:.2f}",
-            ])
-
-        table = Table(
-            table_data,
-            colWidths=PDF_COL_WIDTHS,
-        )
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), PDF_TABLE_HEADER_COLOR),
-            ("TEXTCOLOR", (0, 0), (-1, -1), PDF_TABLE_TEXT_COLOR),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), PDF_TABLE_HEADER_FONT_SIZE),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), PDF_TABLE_HEADER_PADDING),
-            ("GRID", (0, 0), (-1, -1), 1, PDF_TABLE_GRID_COLOR),
-            ("FONTSIZE", (0, 1), (-1, -1), PDF_TABLE_BODY_FONT_SIZE),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [PDF_TABLE_ROW_ALT_COLOR, PDF_TABLE_ROW_BASE_COLOR]),
-        ]))
-        elements.append(table)
-        elements.append(Spacer(1, 0.3 * inch))
-
-        # Total general
-        total_style = ParagraphStyle(
-            "TotalStyle",
-            parent=styles["Normal"],
-            fontSize=PDF_ENTRADAS_TOTAL_FONT_SIZE,
-            textColor=PDF_ENTRADAS_TOTAL_COLOR,
-            alignment=2,
-        )
-        elements.append(
-            Paragraph(f"<b>TOTAL GENERAL:</b> ${total_general:,.2f}", total_style)
-        )
-    else:
-        elements.append(
-            Paragraph("No hay datos de entradas para mostrar.", styles["Normal"])
-        )
-
-    doc.build(elements, onFirstPage=_draw_logo, onLaterPages=_draw_logo)
-    buffer.seek(0)
-    return buffer
-
-
-def create_salidas_pdf(salidas_data):
-    """
-    Genera un PDF con los datos de salidas.
-
-    Args:
-        salidas_data (list[tuple]): Datos de salidas obtenidos con get_salidas_data().
-
-    Returns:
-        BytesIO: Buffer con el contenido del PDF generado.
-    """
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        rightMargin=50,
-        leftMargin=50,
-        topMargin=72,
-        bottomMargin=18,
-    )
-
-    elements = []
-    styles = getSampleStyleSheet()
-
-    # Título
-    title_style = ParagraphStyle(
-        "CustomTitle",
-        parent=styles["Heading1"],
-        fontSize=PDF_TITLE_FONT_SIZE,
-        textColor=PDF_TITLE_COLOR,
-        spaceAfter=20,
-        alignment=1,
-    )
-    elements.append(Paragraph("Reporte de Salidas de Almacén", title_style))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    # Fecha de generación
-    elements.append(
-        Paragraph(
-            f"<b>Fecha de Generación:</b> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-            styles["Normal"],
-        )
-    )
-    elements.append(Spacer(1, 0.3 * inch))
-
-    if salidas_data:
-        table_data = [["Fecha/Hora", "C.C", "Material", "Cantidad/Punta", "Detalle"]]
-
-        for salida in salidas_data:
-            fecha_hora, cc, material, cantidad, nombre_punta, longitud, _ = salida
-            if nombre_punta:
-                detail = (
-                    f"{nombre_punta} ({longitud}m)" if longitud else nombre_punta
-                )
-            else:
-                detail = f"{cantidad} unidades"
-
-            table_data.append([
-                fecha_hora.strftime("%Y-%m-%d %H:%M") if fecha_hora else "",
-                str(cc),
-                material[:30],
-                str(cantidad) if not nombre_punta else "Punta",
-                detail,
-            ])
-
-        table = Table(
-            table_data,
-            colWidths=PDF_SALIDAS_COL_WIDTHS,
-        )
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), PDF_TABLE_HEADER_COLOR),
-            ("TEXTCOLOR", (0, 0), (-1, -1), PDF_TABLE_TEXT_COLOR),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), PDF_TABLE_HEADER_FONT_SIZE),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), PDF_TABLE_HEADER_PADDING),
-            ("GRID", (0, 0), (-1, -1), 1, PDF_TABLE_GRID_COLOR),
-            ("FONTSIZE", (0, 1), (-1, -1), PDF_TABLE_BODY_FONT_SIZE),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [PDF_TABLE_ROW_ALT_COLOR, PDF_TABLE_ROW_BASE_COLOR]),
-        ]))
-        elements.append(table)
-        elements.append(Spacer(1, 0.3 * inch))
-
-        # Resumen
-        summary_style = ParagraphStyle(
-            "SummaryStyle",
-            parent=styles["Normal"],
-            fontSize=PDF_SUMMARY_FONT_SIZE,
-            textColor=PDF_SUMMARY_COLOR,
-            alignment=2,
-        )
-        elements.append(
-            Paragraph(
-                f"<b>TOTAL DE REGISTROS:</b> {len(salidas_data)}", summary_style
-            )
-        )
-    else:
-        elements.append(
-            Paragraph("No hay datos de salidas para mostrar.", styles["Normal"])
-        )
-
-    doc.build(elements, onFirstPage=_draw_logo, onLaterPages=_draw_logo)
-    buffer.seek(0)
-    return buffer

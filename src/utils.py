@@ -30,7 +30,7 @@ categorias = [
     'tableros', 'tierras', 'tornilleria', 'zapatas',
 ]
 
-unidad_de_medida = ['pza', 'm', 'lt', 'kg']
+unidad_de_medida = ['pza', 'm', 'lt', 'kg', 'tramo']
 
 # =============================================================================
 # CONEXIÓN A BASE DE DATOS
