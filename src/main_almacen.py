@@ -14,6 +14,7 @@ from p_inventario import main as inventario_main
 from p_salidas import main as salidas_main
 from p_proyectos import main as proyectos_main
 from p_reportes import main as reportes_main
+from p_proveedores import main as proveedores_main
 
 
 st.set_page_config(page_title="Almacén USSE", page_icon=str(LOGO_PATH), layout="wide")
@@ -59,4 +60,7 @@ elif page == "Proyectos":
     
 elif page == "Reportes":
     reportes_main()
+
+elif page == "Proveedores":
+    proveedores_main()
     

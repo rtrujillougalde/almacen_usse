@@ -90,6 +90,7 @@ class Articulos(Base):
     precio_unitario = Column(Float) # Precio por unidad, útil para calcular el valor total del inventario
     almacen = Column(Enum(AlmacenEnum)) # Ubicación del artículo en el almacén
     ubicacion = Column(Enum(UbicacionEnum)) # Ubicación específica dentro del almacén (e.g., "nivel_1", "nivel_2", "planta_baja", "estante_compras")
+    proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor')) # Proveedor asociado al artículo, útil para gestión de compras y relaciones con proveedores
     # Add other columns as needed 
 
 class DetalleMovimiento(Base):

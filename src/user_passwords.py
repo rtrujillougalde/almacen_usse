@@ -30,7 +30,7 @@ from utils import LOGO_PATH
 # =============================================================================
 # CONFIGURACIÓN
 # =============================================================================
-ALL_PAGES = ("Inventario", "Entradas", "Salidas", "Proyectos", "Reportes")
+ALL_PAGES = ("Inventario", "Entradas", "Salidas", "Proyectos", "Reportes", "Proveedores")
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_SECONDS = 60
 

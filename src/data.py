@@ -8,13 +8,14 @@ Todas las funciones de consulta y manipulación de datos están centralizadas aq
 import streamlit as st  # Solo para manejo de caché, no para UI
 from datetime import datetime
 
-from sqlalchemy import and_, func
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import String, and_, cast, func
+from sqlalchemy.orm import load_only, sessionmaker
 
 from classes import (
     Articulos,
     DetalleMovimiento,
     Movimientos,
+    Proveedores,
     Proyectos,
     StockPuntas,
 )
@@ -50,21 +51,42 @@ def get_all_articulos():
     """
     session = get_session()
     try:
-        articulos = session.query(Articulos).all()
-        data = [
+        # Consultar columnas concretas evita fallos por conversión estricta de Enum
+        # cuando hay valores históricos que no coinciden con la definición Python.
+        rows = (
+            session.query(
+                Articulos.id_articulo.label("id"),
+                Articulos.nombre,
+                Articulos.num_catalogo,
+                Articulos.cantidad_en_stock,
+                Articulos.unidad_medida,
+                Articulos.stock_minimo,
+                cast(Articulos.tipo, String).label("tipo"),
+                cast(Articulos.categoria, String).label("categoria"),
+                Proveedores.nombre.label("proveedor"),
+            )
+            .outerjoin(Proveedores, Proveedores.id_proveedor == Articulos.proveedor)
+            .all()
+        )
+
+        return [
             {
-                "id": a.id_articulo,
-                "nombre": a.nombre,
-                "num_catalogo": a.num_catalogo,
-                "cantidad en stock": round(a.cantidad_en_stock, 2) if a.cantidad_en_stock is not None else 0.00,
-                "unidad de medida": a.unidad_medida,
-                "stock minimo": round(a.stock_minimo, 2) if a.stock_minimo is not None else 0.00,
-                "tipo": a.tipo.value if a.tipo else None,
-                "categoria": a.categoria.value if a.categoria else None,
+                "id": row.id,
+                "nombre": row.nombre,
+                "num_catalogo": row.num_catalogo,
+                "cantidad en stock": round(row.cantidad_en_stock, 2)
+                if row.cantidad_en_stock is not None
+                else 0.00,
+                "unidad de medida": row.unidad_medida,
+                "stock minimo": round(row.stock_minimo, 2)
+                if row.stock_minimo is not None
+                else 0.00,
+                "tipo": row.tipo,
+                "categoria": row.categoria,
+                "proveedor": row.proveedor,
             }
-            for a in articulos
+            for row in rows
         ]
-        return data
     except Exception as e:
         print(f"Error al obtener artículos: {e}")
         return []
@@ -82,7 +104,8 @@ def get_all_articulo_names():
     """
     session = get_session()
     try:
-        return [row.nombre for row in session.query(Articulos).all()]
+        rows = session.query(Articulos.nombre).order_by(Articulos.nombre).all()
+        return [row.nombre for row in rows]
     except Exception as e:
         print(f"Error al obtener nombres de artículos: {e}")
         return []
@@ -100,8 +123,13 @@ def get_cable_names():
     """
     session = get_session()
     try:
-        cables = session.query(Articulos).filter(Articulos.es_cable == True).all()
-        return [row.nombre for row in cables]
+        rows = (
+            session.query(Articulos.nombre)
+            .filter(Articulos.es_cable.is_(True))
+            .order_by(Articulos.nombre)
+            .all()
+        )
+        return [row.nombre for row in rows]
     except Exception as e:
         print(f"Error al obtener nombres de cables: {e}")
         return []
@@ -121,7 +149,24 @@ def get_article_by_name(nombre):
     """
     session = get_session()
     try:
-        return session.query(Articulos).filter(Articulos.nombre == nombre).first()
+        return (
+            session.query(Articulos)
+            .options(
+                load_only(
+                    Articulos.id_articulo,
+                    Articulos.nombre,
+                    Articulos.num_catalogo,
+                    Articulos.cantidad_en_stock,
+                    Articulos.unidad_medida,
+                    Articulos.es_cable,
+                    Articulos.stock_minimo,
+                    Articulos.precio_unitario,
+                    Articulos.proveedor,
+                )
+            )
+            .filter(Articulos.nombre == nombre)
+            .first()
+        )
     except Exception as e:
         print(f"Error al buscar artículo por nombre '{nombre}': {e}")
         return None
@@ -141,9 +186,24 @@ def get_article_by_id(id_articulo):
     """
     session = get_session()
     try:
-        return session.query(Articulos).filter(
-            Articulos.id_articulo == id_articulo
-        ).first()
+        return (
+            session.query(Articulos)
+            .options(
+                load_only(
+                    Articulos.id_articulo,
+                    Articulos.nombre,
+                    Articulos.num_catalogo,
+                    Articulos.cantidad_en_stock,
+                    Articulos.unidad_medida,
+                    Articulos.es_cable,
+                    Articulos.stock_minimo,
+                    Articulos.precio_unitario,
+                    Articulos.proveedor,
+                )
+            )
+            .filter(Articulos.id_articulo == id_articulo)
+            .first()
+        )
     finally:
         session.close()
 
@@ -315,7 +375,7 @@ def get_proyectos_info():
         session.close()
 
 
-@st.cache_data(ttl=300)
+#@st.cache_data(ttl=300)
 def get_proyectos_table_data():
     """
     Obtiene los proyectos en formato tabular para la UI.
@@ -381,6 +441,178 @@ def get_all_cc():
     try:
         ccs = session.query(Proyectos.c_c).distinct().all()
         return sorted([cc[0] for cc in ccs if cc[0] is not None])
+    finally:
+        session.close()
+
+
+# =============================================================================
+# PROVEEDORES
+# =============================================================================
+
+#@st.cache_data(ttl=300)
+def get_proveedores_table_data():
+    """
+    Obtiene los proveedores en formato tabular para la UI.
+
+    Returns:
+        list[dict]: Lista de diccionarios con datos de proveedores.
+    """
+    session = get_session()
+    try:
+        proveedores = session.query(Proveedores).order_by(Proveedores.nombre).all()
+        return [
+            {
+                "Nombre": p.nombre,
+                "Teléfono": p.telefono,
+                "Email": p.email,
+                "Página Web": p.pagina_web,
+                "Dirección": p.direccion,
+                "Contacto": p.contacto,
+                "Notas": p.notas
+            }
+            for p in proveedores
+        ]
+    finally:
+        session.close()
+
+
+#@st.cache_data(ttl=300)
+def get_proveedores_for_edit():
+    """
+    Obtiene proveedores con campos completos para selección/edición en UI.
+
+    Returns:
+        list[dict]: Lista con id y datos del proveedor.
+    """
+    session = get_session()
+    try:
+        proveedores = session.query(Proveedores).order_by(Proveedores.nombre, Proveedores.id_proveedor).all()
+        return [
+            {
+                "id_proveedor": p.id_proveedor,
+                "nombre": p.nombre,
+                "telefono": p.telefono,
+                "email": p.email,
+                "pagina_web": p.pagina_web,
+                "direccion": p.direccion,
+                "contacto": p.contacto,
+            }
+            for p in proveedores
+        ]
+    finally:
+        session.close()
+
+
+def add_proveedor(nombre, telefono=None, email=None, pagina_web=None, direccion=None, contacto=None, notas=None):
+    """
+    Agrega un nuevo proveedor a la base de datos.
+
+    Args:
+        nombre (str): Nombre del proveedor (obligatorio).
+        telefono (str, optional): Teléfono del proveedor.
+        email (str, optional): Correo electrónico del proveedor.
+        pagina_web (str, optional): Página web del proveedor.
+        direccion (str, optional): Dirección del proveedor.
+        contacto (str, optional): Persona de contacto del proveedor.
+        notas (str, optional): Notas adicionales sobre el proveedor.
+
+    Returns:
+        Proveedores: El proveedor creado.
+
+    Raises:
+        ValueError: Si el nombre está vacío.
+        Exception: Si ocurre un error en la base de datos.
+    """
+    nombre_limpio = (nombre or "").strip()
+    if not nombre_limpio:
+        raise ValueError("El nombre del proveedor es obligatorio")
+
+    def to_none_if_empty(value):
+        cleaned = (value or "").strip()
+        return cleaned if cleaned else None
+
+    session = get_session()
+    try:
+        nuevo_proveedor = Proveedores(
+            nombre=nombre_limpio,
+            telefono=to_none_if_empty(telefono),
+            email=to_none_if_empty(email),
+            pagina_web=to_none_if_empty(pagina_web),
+            direccion=to_none_if_empty(direccion),
+            contacto=to_none_if_empty(contacto),
+            notas=to_none_if_empty(notas)
+        )
+        session.add(nuevo_proveedor)
+        session.flush()  # Para obtener el ID asignado antes de commit
+        session.commit()
+
+        clear_method = getattr(get_proveedores_table_data, "clear", None)
+        if callable(clear_method):
+            clear_method()
+
+        return nuevo_proveedor
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def update_proveedor(id_proveedor, nombre, telefono=None, email=None, pagina_web=None, direccion=None, contacto=None):
+    """
+    Actualiza un proveedor existente.
+
+    Args:
+        id_proveedor (int): ID del proveedor a actualizar.
+        nombre (str): Nombre del proveedor (obligatorio).
+        telefono (str, optional): Teléfono del proveedor.
+        email (str, optional): Correo electrónico del proveedor.
+        pagina_web (str, optional): Página web del proveedor.
+        direccion (str, optional): Dirección del proveedor.
+        contacto (str, optional): Persona de contacto del proveedor.
+
+    Returns:
+        Proveedores: El proveedor actualizado.
+
+    Raises:
+        ValueError: Si el proveedor no existe o nombre está vacío.
+        Exception: Si ocurre un error de base de datos.
+    """
+    nombre_limpio = (nombre or "").strip()
+    if not nombre_limpio:
+        raise ValueError("El nombre del proveedor es obligatorio")
+
+    def to_none_if_empty(value):
+        cleaned = (value or "").strip()
+        return cleaned if cleaned else None
+
+    session = get_session()
+    try:
+        proveedor = session.query(Proveedores).filter(
+            Proveedores.id_proveedor == id_proveedor
+        ).first()
+
+        if not proveedor:
+            raise ValueError(f"Proveedor con ID {id_proveedor} no encontrado")
+
+        proveedor.nombre = nombre_limpio
+        proveedor.telefono = to_none_if_empty(telefono)
+        proveedor.email = to_none_if_empty(email)
+        proveedor.pagina_web = to_none_if_empty(pagina_web)
+        proveedor.direccion = to_none_if_empty(direccion)
+        proveedor.contacto = to_none_if_empty(contacto)
+
+        session.commit()
+
+        for fn in (get_proveedores_table_data, get_proveedores_for_edit):
+            clear_method = getattr(fn, "clear", None)
+            if callable(clear_method):
+                clear_method()
+
+        return proveedor
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
