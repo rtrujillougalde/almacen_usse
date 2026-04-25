@@ -5,7 +5,7 @@ Base = declarative_base()
 class CatEnum(enum.Enum):
     cable = "cable"
     componente = "componente"
-    albañileria = 'albañileria'
+    albanileria = 'albanileria'
     aire_acondicionado = 'aire_acondicionado'
     aislantes = 'aislantes'
     almacen_dormitorios = 'almacen_dormitorios'
@@ -24,8 +24,8 @@ class CatEnum(enum.Enum):
     control_acceso = 'control_acceso'
     datos = 'datos'
     electrico = 'eléctrico'
-    equipo_medicion = 'equipo_medición'
-    equipo_proteccion = 'equipo_protección'
+    equipo_medicion = 'equipo_medicion'
+    equipo_proteccion = 'equipo_proteccion'
     fibra_optica = 'fibra_óptica'
     fuse_panel = 'fuse_panel'
     fusibles = 'fusibles'
@@ -38,7 +38,7 @@ class CatEnum(enum.Enum):
     limpieza = 'limpieza'
     miscelaneos = 'miscelaneos'
     motores = 'motores'
-    papelería = 'papelería'
+    papelera = 'papeleria'
     pintura = 'pintura'
     planta_emergencia = 'planta_emergencia'
     plomeria = 'plomeria'
@@ -69,12 +69,14 @@ class AlmacenEnum(enum.Enum):
     dos = "2"
     tres = "3"
     dormitorio = "dormitorios"
+    sin_registro = "sin_registro"
 
 class UbicacionEnum(enum.Enum):
     nivel_1 = "nivel_1"
     nivel_2 = "nivel_2"
     planta_baja = "planta_baja"
     estante_compras = "estante_compras"
+    sin_registro = "sin_registro"
 
 class Articulos(Base):
     __tablename__ = 'articulos'

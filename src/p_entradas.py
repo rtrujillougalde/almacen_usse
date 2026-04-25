@@ -8,8 +8,8 @@ Toda la lógica de acceso a datos se delega al módulo data.py.
 import streamlit as st
 
 from utils import (
-    categorias,
-    unidad_de_medida,
+    CATEGORIAS,
+    UNIDAD_DE_MEDIDA,
     check_movement_db,
     initialize_prefixed_session_state,
     render_project_selector,
@@ -61,7 +61,7 @@ def display_new_item_form():
 
         st.session_state.form_unidad_medida = st.selectbox(
             "Unidad de medida",
-            unidad_de_medida,
+            UNIDAD_DE_MEDIDA,
             key="form_unidad_medida_select",
         )
 
@@ -74,10 +74,10 @@ def display_new_item_form():
 
         st.session_state.form_categoria = st.selectbox(
             "Categoría",
-            sorted(categorias),
+            sorted(CATEGORIAS),
             index=(
-                sorted(categorias).index(st.session_state.form_categoria)
-                if st.session_state.form_categoria in categorias
+                sorted(CATEGORIAS).index(st.session_state.form_categoria)
+                if st.session_state.form_categoria in CATEGORIAS
                 else 0
             ),
             key="form_categoria_select",

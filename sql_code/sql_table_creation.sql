@@ -23,10 +23,12 @@ CREATE TABLE `articulos` (
   `stock_minimo` float DEFAULT NULL,
   `precio_unitario` float DEFAULT NULL,
   `proveedor` int DEFAULT NULL,
+  `almacen` enum('oficina','uno','dos','tres','dormitorios') DEFAULT NULL,
+  `ubicacion` enum('nivel_1','nivel_2','planta_baja','estante_compras') DEFAULT NULL,
   PRIMARY KEY (`id_articulo`),
-  KEY `proveedor_id_idx` (`proveedor`),
-  CONSTRAINT `proveedor_id` FOREIGN KEY (`proveedor`) REFERENCES `proveedores` (`id_proveedor`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  KEY `id_proveedor_idx` (`proveedor`),
+  CONSTRAINT `id_proveedor` FOREIGN KEY (`proveedor`) REFERENCES `proveedores` (`id_proveedor`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
 CREATE TABLE `proyectos` (
   `id_proyecto` int NOT NULL AUTO_INCREMENT,

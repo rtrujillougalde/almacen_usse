@@ -60,9 +60,13 @@ def get_all_articulos():
                 Articulos.num_catalogo,
                 Articulos.cantidad_en_stock,
                 Articulos.unidad_medida,
+                Articulos.es_cable,
                 Articulos.stock_minimo,
+                Articulos.precio_unitario,
                 cast(Articulos.tipo, String).label("tipo"),
                 cast(Articulos.categoria, String).label("categoria"),
+                cast(Articulos.almacen, String).label("almacen"),
+                cast(Articulos.ubicacion, String).label("ubicacion"),
                 Proveedores.nombre.label("proveedor"),
             )
             .outerjoin(Proveedores, Proveedores.id_proveedor == Articulos.proveedor)
@@ -78,11 +82,17 @@ def get_all_articulos():
                 if row.cantidad_en_stock is not None
                 else 0.00,
                 "unidad de medida": row.unidad_medida,
+                "es_cable": bool(row.es_cable),
                 "stock minimo": round(row.stock_minimo, 2)
                 if row.stock_minimo is not None
                 else 0.00,
+                "precio_unitario": round(row.precio_unitario, 2)
+                if row.precio_unitario is not None
+                else 0.00,
                 "tipo": row.tipo,
                 "categoria": row.categoria,
+                "almacen": row.almacen,
+                "ubicacion": row.ubicacion,
                 "proveedor": row.proveedor,
             }
             for row in rows
@@ -159,6 +169,10 @@ def get_article_by_name(nombre):
                     Articulos.cantidad_en_stock,
                     Articulos.unidad_medida,
                     Articulos.es_cable,
+                    Articulos.tipo,
+                    Articulos.categoria,
+                    Articulos.almacen,
+                    Articulos.ubicacion,
                     Articulos.stock_minimo,
                     Articulos.precio_unitario,
                     Articulos.proveedor,
@@ -196,6 +210,10 @@ def get_article_by_id(id_articulo):
                     Articulos.cantidad_en_stock,
                     Articulos.unidad_medida,
                     Articulos.es_cable,
+                    Articulos.tipo,
+                    Articulos.categoria,
+                    Articulos.almacen,
+                    Articulos.ubicacion,
                     Articulos.stock_minimo,
                     Articulos.precio_unitario,
                     Articulos.proveedor,
@@ -208,7 +226,7 @@ def get_article_by_id(id_articulo):
         session.close()
 
 
-def update_articulo(id_articulo, nombre, num_catalogo, cantidad_en_stock, unidad_medida, stock_minimo):
+def update_articulo(id_articulo, nombre, num_catalogo, cantidad_en_stock, unidad_medida, stock_minimo, tipo, categoria, es_cable, almacen, ubicacion, proveedor_name):
     """
     Actualiza los campos editables de un artículo.
 
@@ -235,6 +253,13 @@ def update_articulo(id_articulo, nombre, num_catalogo, cantidad_en_stock, unidad
         articulo.cantidad_en_stock = cantidad_en_stock
         articulo.unidad_medida = unidad_medida
         articulo.stock_minimo = stock_minimo
+        articulo.tipo = tipo
+        articulo.categoria = categoria
+        articulo.es_cable = es_cable
+        articulo.almacen = almacen
+        articulo.ubicacion = ubicacion
+        articulo.proveedor = get_id_proveedor_by_name(proveedor_name)
+
         session.commit()
     except Exception as e:
         session.rollback()
@@ -244,7 +269,27 @@ def update_articulo(id_articulo, nombre, num_catalogo, cantidad_en_stock, unidad
     finally:
         session.close()
 
+def get_id_proveedor_by_name(nombre_proveedor):
+    """
+    Obtiene el ID de un proveedor dado su nombre.
 
+    Args:
+        nombre_proveedor (str): Nombre del proveedor.
+
+    Returns:
+        int | None: ID del proveedor o None si no se encuentra.
+    """
+    session = get_session()
+    try:
+        proveedor = session.query(Proveedores).filter(
+            Proveedores.nombre == nombre_proveedor
+        ).first()
+        return proveedor.id_proveedor if proveedor else None
+    except Exception as e:
+        print(f"Error al obtener ID de proveedor por nombre '{nombre_proveedor}': {e}")
+        return None
+    finally:
+        session.close()
 # =============================================================================
 # CABLES / PUNTAS
 # =============================================================================
@@ -448,7 +493,22 @@ def get_all_cc():
 # =============================================================================
 # PROVEEDORES
 # =============================================================================
+def get_proveedor_names():
+    """
+    Obtiene los nombres de todos los proveedores.
 
+    Returns:
+        list[str]: Lista de nombres de proveedores.
+    """
+    session = get_session()
+    try:
+        rows = session.query(Proveedores.nombre).order_by(Proveedores.nombre).all()
+        return [row.nombre for row in rows]
+    except Exception as e:
+        print(f"Error al obtener nombres de proveedores: {e}")
+        return []
+    finally:
+        session.close()
 #@st.cache_data(ttl=300)
 def get_proveedores_table_data():
     """
@@ -558,7 +618,7 @@ def add_proveedor(nombre, telefono=None, email=None, pagina_web=None, direccion=
         session.close()
 
 
-def update_proveedor(id_proveedor, nombre, telefono=None, email=None, pagina_web=None, direccion=None, contacto=None):
+def update_proveedor(id_proveedor, nombre, telefono=None, email=None, pagina_web=None, direccion=None, contacto=None, notas=None):
     """
     Actualiza un proveedor existente.
 
@@ -601,6 +661,7 @@ def update_proveedor(id_proveedor, nombre, telefono=None, email=None, pagina_web
         proveedor.pagina_web = to_none_if_empty(pagina_web)
         proveedor.direccion = to_none_if_empty(direccion)
         proveedor.contacto = to_none_if_empty(contacto)
+        proveedor.notas = to_none_if_empty(notas)  # Mantener notas existentes si no se pasan nuevas
 
         session.commit()
 

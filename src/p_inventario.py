@@ -7,18 +7,22 @@ Toda la lógica de acceso a datos se delega al módulo data.py.
 
 import streamlit as st
 import pandas as pd
-
+from types import SimpleNamespace
+from utils import CATEGORIAS, UNIDAD_DE_MEDIDA, UBICACIONES, ALMACENES
+from user_passwords import verify_credentials
 from data import (
     get_all_articulos,
     update_articulo,
     get_cable_names,
     get_article_by_name,
     get_available_puntas,
+    get_proveedor_names,
+    get_proveedores_for_edit,
 )
 
 def highlight_low_stock(row):
             if row["cantidad en stock"] < row["stock minimo"]:
-                return ["background-color: #e7192b"] * len(row)
+                return ["background-color: #EB6E6E"] * len(row)
             return [""] * len(row)
 
 
@@ -29,6 +33,70 @@ def clear_inventory_filters():
     st.session_state.inventario_nombre_filter = ""
     st.session_state.inventario_filtros_activos = False
 
+#@st.dialog("Contraseña requerida")
+def password_required_dialog():
+    st.warning("Para modificar la cantidad en stock, por favor ingresa contraseña del administrador.")
+    password = st.text_input("Contraseña", type="password")
+    return password
+
+@st.dialog("Editar artículo")
+def editar_articulo_dialog(articulo):
+    with st.form("form_editar_articulo"):
+        nombre = st.text_input("Nombre *", value=articulo.get("nombre") or "")
+        num_catalogo = st.text_input("Núm. catálogo", value=articulo.get("num_catalogo") or "")
+        cantidad = st.number_input("Cantidad en stock", value=float(articulo.get("cantidad en stock") or 0), min_value=0.0)
+        unidad = st.selectbox("Unidad de medida", options=UNIDAD_DE_MEDIDA,
+                              index=UNIDAD_DE_MEDIDA.index(articulo["unidad de medida"]) if articulo.get("unidad de medida") in UNIDAD_DE_MEDIDA else 0)
+        stock_min = st.number_input("Stock mínimo", value=float(articulo.get("stock minimo") or 0), min_value=0.0)
+        tipo = st.text_input("Tipo", value=articulo.get("tipo") or "")
+        categoria = st.selectbox("Categoría", options=CATEGORIAS,
+                                 index=CATEGORIAS.index(articulo["categoria"]) if articulo.get("categoria") in CATEGORIAS else 0)
+        es_cable = st.checkbox("Es cable", value=bool(articulo.get("es_cable")))
+        almacen = st.selectbox("Almacén", options=ALMACENES,
+                               index=ALMACENES.index(articulo["almacen"]) if articulo.get("almacen") in ALMACENES else 0)
+        ubicacion = st.selectbox("Ubicación", options=UBICACIONES,
+                                 index=UBICACIONES.index(articulo["ubicacion"]) if articulo.get("ubicacion") in UBICACIONES else 0)
+        proveedores = get_proveedor_names()
+        proveedor_idx = proveedores.index(articulo["proveedor"]) if articulo.get("proveedor") in proveedores else 0
+        proveedor = st.selectbox("Proveedor", options=proveedores, index=proveedor_idx)
+
+        st.divider()
+        st.caption("Si modificas la cantidad en stock, ingresa la contraseña de administrador.")
+        confirm_password = st.text_input("Contraseña de administrador", type="password")
+
+        submitted = st.form_submit_button("Guardar cambios")
+
+    if submitted:
+        if not nombre.strip():
+            st.error("El campo Nombre es obligatorio.")
+            return
+
+        cantidad_original = float(articulo.get("cantidad en stock") or 0)
+        if cantidad != cantidad_original:
+            if verify_credentials("admin", confirm_password) is None:
+                st.error("Contraseña incorrecta. No se puede modificar la cantidad.")
+                return
+            
+        try:
+            update_articulo(
+                id_articulo=articulo["id"],
+                nombre=nombre,
+                num_catalogo=num_catalogo,
+                cantidad_en_stock=cantidad,
+                unidad_medida=unidad,
+                stock_minimo=stock_min,
+                tipo=tipo,
+                categoria=categoria,
+                es_cable=es_cable,
+                almacen=almacen,
+                ubicacion=ubicacion,
+                proveedor_name=proveedor,
+            )
+            st.success("Artículo actualizado exitosamente.")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error al actualizar artículo: {e}")
+            
 def main():
     """
     Función principal de la página de Inventario.
@@ -47,7 +115,7 @@ def main():
         if "inventario_filtros_activos" not in st.session_state:
             st.session_state.inventario_filtros_activos = False
 
-        categorias = sorted(df["categoria"].dropna().unique().tolist()) if "categoria" in df.columns else []
+        
         tipos = sorted(df["tipo"].dropna().unique().tolist()) if "tipo" in df.columns else []
 
         st.markdown("### Filtros")
@@ -55,7 +123,7 @@ def main():
         with col_f1:
             categoria_filter = st.selectbox(
                 "Categoria",
-                options=["Todas"] + categorias,
+                options=["Todas"] + CATEGORIAS,
                 key="inventario_categoria_filter",
             )
         with col_f2:
@@ -98,34 +166,15 @@ def main():
         styled_df = filtered_df.style.apply(highlight_low_stock, axis=1).format(
             {"cantidad en stock": "{:.2f}", "stock minimo": "{:.2f}"}
         )
-        if st.session_state.user_role == "consulta":
-            
-            st.dataframe(styled_df, hide_index=True, width='stretch')
-        else:
-            filtered_data = filtered_df.to_dict("records")
-        
-            edited_data = st.data_editor(
-                filtered_data, hide_index=True,
-                width='stretch',
-                disabled=["id", "cantidad en stock", "tipo", "categoria"]  # No permitir editar columnas de referencia
-            )
+        articulos_edit = {f"{a['id']} - {a['nombre']}": a for a in data}
+        seleccionado = st.selectbox("Artículo a editar", options=list(articulos_edit.keys()), key="articulo_editar_select")
+        if st.button("✏️ Editar artículo seleccionado"):
+            editar_articulo_dialog(articulos_edit[seleccionado])
 
-            # Guardar cambios si hubo edición
-            if edited_data != filtered_data:
-                try:
-                    for edited_row, original_row in zip(edited_data, filtered_data):
-                        if edited_row != original_row:
-                            update_articulo(
-                                id_articulo=edited_row["id"],
-                                nombre=edited_row["nombre"],
-                                num_catalogo=edited_row["num_catalogo"],
-                                cantidad_en_stock=edited_row["cantidad en stock"],
-                                unidad_medida=edited_row["unidad de medida"],
-                                stock_minimo=edited_row["stock minimo"],
-                            )
-                    st.success("Cambios guardados")
-                except Exception as e:
-                    st.error(f"Error al guardar cambios: {e}")
+        st.dataframe(styled_df, hide_index=True, width='stretch')
+        
+        # Selector para editar artículo
+       
 
         # --- Sección de cables ---
         cable_names = get_cable_names()

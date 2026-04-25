@@ -10,27 +10,16 @@ import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from classes import CatEnum, TipoEnum, UbicacionEnum, AlmacenEnum
 
 # =============================================================================
 # CONSTANTES
 # =============================================================================
 LOGO_PATH = Path(__file__).resolve().parent.parent / "images" / "logo_usse_2.jpg"
-categorias = [
-    'albañileria', 'aire_acondicionado', 'aislantes',
-    'almacen_dormitorios', 'alumbrado', 'baterias',
-    'c_d', 'cables', 'calentadores', 'canalizaciones',
-    'charolas', 'cinchos', 'conductor', 'contactos', 'contactos_regulados',
-    'control_almacen', 'control_acceso', 'datos', 'eléctrico',
-    'equipo_medición', 'equipo_protección', 'fibra_óptica',
-    'fuse_panel', 'fusibles', 'gasolina', 'general',
-    'herramienta', 'herrería', 'interruptores', 'kit_cursos',
-    'limpieza', 'miscelaneos', 'motores', 'papelería', 'pintura',
-    'planta_emergencia', 'plomeria', 'racks', 'referencia',
-    'registros', 'regletas', 'seguridad', 'soportes', 'tablaroca',
-    'tableros', 'tierras', 'tornilleria', 'zapatas',
-]
-
-unidad_de_medida = ['pza', 'm', 'lt', 'kg', 'tramo']
+CATEGORIAS= [e.value for e in CatEnum]
+UNIDAD_DE_MEDIDA = ['pza', 'm', 'lt', 'kg', 'tramo', 'juego']
+UBICACIONES = [e.value for e in UbicacionEnum]
+ALMACENES = [e.value for e in AlmacenEnum]
 
 # =============================================================================
 # CONEXIÓN A BASE DE DATOS
