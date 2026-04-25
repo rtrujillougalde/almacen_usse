@@ -65,9 +65,9 @@ class TipoMovimientoEnum(enum.Enum):
 
 class AlmacenEnum(enum.Enum):
     oficina = "oficina"
-    uno = "1"
-    dos = "2"
-    tres = "3"
+    uno = "uno"
+    dos = "dos"
+    tres = "tres"
     dormitorio = "dormitorios"
     sin_registro = "sin_registro"
 
