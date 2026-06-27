@@ -11,6 +11,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from classes import CatEnum, TipoEnum, UbicacionEnum, AlmacenEnum
+from typing import Callable, Optional
 
 # =============================================================================
 # CONSTANTES
@@ -52,7 +53,7 @@ def check_movement_db(
     movement_items,
     state_prefix,
     dialog_title="Confirmar movimiento",
-    item_formatter: Callable | None = None,
+    item_formatter: Optional[Callable] = None,
     responsable="",
     require_responsable=True,
     responsable_warning="Debe ingresar el responsable antes de confirmar el movimiento.",

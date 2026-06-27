@@ -581,7 +581,7 @@ def display_report_results(report_data, pdf_buffer, excel_buffer, pdf_name, exce
 
     st.subheader("Vista previa de datos")
     preview_df = create_preview_report_df(report_data, movement_type=movement_type)
-    st.dataframe(preview_df, width='stretch')
+    st.dataframe(preview_df)
 
 
 # =============================================================================
@@ -718,7 +718,7 @@ def reporte_comparacion_main(
                 "Total Entradas", "Total Salidas",
                 "Usado", "Costo material usado",
             ]
-            st.dataframe(preview_df, width='stretch')
+            st.dataframe(preview_df)
 
             total_costo = sum(i["costo_material_usado"] for i in comparacion_data)
             st.metric("Costo Total de material usado", f"${total_costo:,.2f}")

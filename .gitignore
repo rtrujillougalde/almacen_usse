@@ -1,6 +1,6 @@
 .streamlit/secrets.toml
 .streamlit/sql_table_creation.sql
-venv/
+.venv/
 __pycache__/
 *.pyc
 *.pdf

@@ -171,7 +171,7 @@ def main():
         if st.button("✏️ Editar artículo seleccionado"):
             editar_articulo_dialog(articulos_edit[seleccionado])
 
-        st.dataframe(styled_df, hide_index=True, width='stretch')
+        st.dataframe(styled_df, hide_index=True)
         
         # Selector para editar artículo
        

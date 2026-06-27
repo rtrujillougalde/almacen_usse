@@ -32,7 +32,7 @@ st.sidebar.markdown(
 st.sidebar.title("Menú")
 st.sidebar.caption(f"Sesión: {st.session_state.user_role}")
 
-if st.sidebar.button("Cerrar sesión", width='stretch'):
+if st.sidebar.button("Cerrar sesión"):
     logout()
 
 allowed_pages = get_allowed_pages(st.session_state.user_role)
@@ -44,7 +44,7 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     
     st.image(str(LOGO_PATH))
-    st.title('Almacén USSE',text_alignment="center")
+    st.title('Almacén USSE')
 
 if page == "Inventario":
     inventario_main()
