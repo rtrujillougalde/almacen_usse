@@ -13,6 +13,7 @@ from user_passwords import verify_credentials
 from data import (
     get_all_articulos,
     update_articulo,
+    update_article_puntas,
     get_cable_names,
     get_article_by_name,
     get_available_puntas,
@@ -41,17 +42,33 @@ def password_required_dialog():
 
 @st.dialog("Editar artículo")
 def editar_articulo_dialog(articulo):
+    is_cable = bool(articulo.get("es_cable"))
+    puntas_disponibles = get_available_puntas(articulo["id"]) if is_cable else []
+    cantidad_total_puntas = sum(
+        float(punta.get("longitud") or 0) for punta in puntas_disponibles
+    )
+
     with st.form("form_editar_articulo"):
         nombre = st.text_input("Nombre *", value=articulo.get("nombre") or "")
         num_catalogo = st.text_input("Núm. catálogo", value=articulo.get("num_catalogo") or "")
-        cantidad = st.number_input("Cantidad en stock", value=float(articulo.get("cantidad en stock") or 0), min_value=0.0)
+        cantidad = st.number_input(
+            "Cantidad en stock",
+            value=float((cantidad_total_puntas if is_cable else float(articulo.get("cantidad en stock") or 0))),
+            min_value=0.0,
+            disabled=is_cable,
+            help=(
+                "En artículos cable, la cantidad total se calcula automáticamente a partir del metraje de sus puntas."
+                if is_cable
+                else None
+            ),
+        )
         unidad = st.selectbox("Unidad de medida", options=UNIDAD_DE_MEDIDA,
                               index=UNIDAD_DE_MEDIDA.index(articulo["unidad de medida"]) if articulo.get("unidad de medida") in UNIDAD_DE_MEDIDA else 0)
         stock_min = st.number_input("Stock mínimo", value=float(articulo.get("stock minimo") or 0), min_value=0.0)
         tipo = st.text_input("Tipo", value=articulo.get("tipo") or "")
         categoria = st.selectbox("Categoría", options=CATEGORIAS,
                                  index=CATEGORIAS.index(articulo["categoria"]) if articulo.get("categoria") in CATEGORIAS else 0)
-        es_cable = st.checkbox("Es cable", value=bool(articulo.get("es_cable")))
+        es_cable = st.checkbox("Es cable", value=is_cable, disabled=is_cable)
         almacen = st.selectbox("Almacén", options=ALMACENES,
                                index=ALMACENES.index(articulo["almacen"]) if articulo.get("almacen") in ALMACENES else 0)
         ubicacion = st.selectbox("Ubicación", options=UBICACIONES,
@@ -60,8 +77,44 @@ def editar_articulo_dialog(articulo):
         proveedor_idx = proveedores.index(articulo["proveedor"]) if articulo.get("proveedor") in proveedores else 0
         proveedor = st.selectbox("Proveedor", options=proveedores, index=proveedor_idx)
 
+        puntas_editadas = []
+        if is_cable:
+            st.divider()
+            st.subheader("Puntas del cable")
+            if puntas_disponibles:
+                for punta in puntas_disponibles:
+                    col1, col2, col3 = st.columns([2, 1, 1])
+                    with col1:
+                        nombre_punta = st.text_input(
+                            "Nombre de la punta",
+                            value=punta.get("nombre_punta") or "",
+                            key=f"punta_nombre_{punta['id_punta']}",
+                        )
+                    with col2:
+                        longitud_punta = st.number_input(
+                            "Metraje",
+                            value=float(punta.get("longitud") or 0),
+                            min_value=0.0,
+                            key=f"punta_longitud_{punta['id_punta']}",
+                        )
+                    with col3:
+                        color_punta = st.text_input(
+                            "Color",
+                            value=punta.get("color") or "",
+                            key=f"punta_color_{punta['id_punta']}",
+                        )
+
+                    puntas_editadas.append({
+                        "id_punta": punta["id_punta"],
+                        "nombre_punta": nombre_punta,
+                        "longitud": longitud_punta,
+                        "color": color_punta,
+                    })
+            else:
+                st.info("Este cable no tiene puntas disponibles para editar.")
+
         st.divider()
-        st.caption("Si modificas la cantidad en stock, ingresa la contraseña de administrador.")
+        st.caption("Si modificas la cantidad en stock o el metraje de una punta, ingresa la contraseña de administrador.")
         confirm_password = st.text_input("Contraseña de administrador", type="password")
 
         submitted = st.form_submit_button("Guardar cambios")
@@ -71,10 +124,26 @@ def editar_articulo_dialog(articulo):
             st.error("El campo Nombre es obligatorio.")
             return
 
+        for punta in puntas_editadas:
+            if not punta["nombre_punta"].strip():
+                st.error("Cada punta debe tener un nombre.")
+                return
+
         cantidad_original = float(articulo.get("cantidad en stock") or 0)
-        if cantidad != cantidad_original:
+        puntas_cambiaron = any(
+            float(punta_editada["longitud"]) != float(punta_original.get("longitud") or 0)
+            for punta_editada, punta_original in zip(puntas_editadas, puntas_disponibles)
+        )
+
+        cantidad_actualizada = (
+            sum(float(punta["longitud"] or 0) for punta in puntas_editadas)
+            if is_cable
+            else cantidad
+        )   
+
+        if cantidad_actualizada != cantidad_original or puntas_cambiaron:
             if verify_credentials("admin", confirm_password) is None:
-                st.error("Contraseña incorrecta. No se puede modificar la cantidad.")
+                st.error("Contraseña incorrecta. No se puede modificar la cantidad o el metraje.")
                 return
             
         try:
@@ -82,7 +151,7 @@ def editar_articulo_dialog(articulo):
                 id_articulo=articulo["id"],
                 nombre=nombre,
                 num_catalogo=num_catalogo,
-                cantidad_en_stock=cantidad,
+                cantidad_en_stock=cantidad_actualizada,
                 unidad_medida=unidad,
                 stock_minimo=stock_min,
                 tipo=tipo,
@@ -92,6 +161,8 @@ def editar_articulo_dialog(articulo):
                 ubicacion=ubicacion,
                 proveedor_name=proveedor,
             )
+            if is_cable and puntas_editadas:
+                update_article_puntas(articulo["id"], puntas_editadas)
             st.success("Artículo actualizado exitosamente.")
             st.rerun()
         except Exception as e:

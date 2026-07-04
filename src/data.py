@@ -383,6 +383,59 @@ def get_cables_without_salida():
         session.close()
 
 
+def update_article_puntas(id_articulo, puntas_actualizadas):
+    """
+    Actualiza las puntas disponibles de un artículo cable y sincroniza su stock.
+
+    Args:
+        id_articulo (int): ID del artículo cable.
+        puntas_actualizadas (list[dict]): Lista con id_punta, nombre_punta,
+            longitud y color.
+
+    Raises:
+        ValueError: Si alguna punta no existe o no pertenece al artículo.
+        Exception: Si ocurre un error en la base de datos.
+    """
+    session = get_session()
+    try:
+        articulo = session.query(Articulos).filter(
+            Articulos.id_articulo == id_articulo
+        ).first()
+        if not articulo:
+            raise ValueError(f"Artículo con ID {id_articulo} no encontrado")
+
+        punta_ids = [punta["id_punta"] for punta in puntas_actualizadas]
+        puntas_db = {
+            punta.id_punta: punta
+            for punta in session.query(StockPuntas).filter(
+                StockPuntas.id_articulo == id_articulo,
+                StockPuntas.id_punta.in_(punta_ids),
+            ).all()
+        }
+
+        for punta_data in puntas_actualizadas:
+            punta = puntas_db.get(punta_data["id_punta"])
+            if not punta:
+                raise ValueError(
+                    f"Punta con ID {punta_data['id_punta']} no encontrada para el artículo {id_articulo}"
+                )
+
+            punta.nombre_punta = punta_data["nombre_punta"]
+            punta.longitud = punta_data["longitud"]
+            punta.color = punta_data.get("color")
+
+        articulo.cantidad_en_stock = sum(
+            float(punta_data["longitud"] or 0) for punta_data in puntas_actualizadas
+        )
+
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 # =============================================================================
 # PROYECTOS
 # =============================================================================
