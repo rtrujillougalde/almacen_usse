@@ -147,12 +147,14 @@ def validate_form_inputs(nombre_item, nombres_cables):
         list[str]: Lista de mensajes de error (vacía si no hay errores).
     """
     errors = []
+    is_new_item = nombre_item == "Otro (escribir nuevo)"
+    requires_cable_details = is_new_item and st.session_state.form_es_cable
 
-    if nombre_item == "Otro (escribir nuevo)":
+    if is_new_item:
         if not st.session_state.form_nombre_item or st.session_state.form_nombre_item.strip() == "":
             errors.append("Debe ingresar un nombre para el nuevo item")
 
-    if st.session_state.form_es_cable and st.session_state.form_longitud <= 0:
+    if requires_cable_details and st.session_state.form_longitud <= 0:
         errors.append("La longitud del cable debe ser mayor a 0")
 
     if nombre_item in nombres_cables and (
@@ -191,8 +193,164 @@ def gather_form_data(nombre_item):
         "nombre_punta": st.session_state.form_nombre_punta,
         "longitud": st.session_state.form_longitud,
         "cantidad": st.session_state.form_cantidad,
-        "color": st.session_state.form_color_punta
+        "color": st.session_state.form_color_punta if st.session_state.form_es_cable else None,
     }
+
+
+def reset_new_item_fields():
+    """Limpia el estado asociado al formulario de creación de nuevos ítems."""
+    st.session_state.form_nombre_item = ""
+    st.session_state.form_num_catalogo = ""
+    st.session_state.form_tipo = "material"
+    st.session_state.form_precio_unitario = 0.0
+    st.session_state.form_unidad_medida = "pieza"
+    st.session_state.form_categoria = ""
+    st.session_state.form_stock_minimo = 0
+    st.session_state.form_es_cable = False
+    st.session_state.form_nombre_punta = ""
+    st.session_state.form_longitud = 0.0
+    st.session_state.form_color_punta = ""
+
+
+def handle_item_selection_change(nombre_item):
+    """Resetea campos del formulario nuevo al cambiar desde la opción 'Otro'."""
+    previous_selection = st.session_state.get("form_selected_item")
+    is_new_item = nombre_item == "Otro (escribir nuevo)"
+
+    if previous_selection != nombre_item and not is_new_item:
+        reset_new_item_fields()
+
+    st.session_state.form_selected_item = nombre_item
+    st.session_state.form_is_new = is_new_item
+
+
+def initialize_entrada_state(form_defaults):
+    """Inicializa el estado base usado por el formulario de entradas."""
+    if "movement_items" not in st.session_state:
+        st.session_state.movement_items = []
+    if "current_form" not in st.session_state:
+        st.session_state.current_form = "closed"
+    if "entrada_submitted" not in st.session_state:
+        st.session_state.entrada_submitted = False
+    if "entrada_pending_confirmation" not in st.session_state:
+        st.session_state.entrada_pending_confirmation = False
+    if "entrada_confirmed_db_check" not in st.session_state:
+        st.session_state.entrada_confirmed_db_check = False
+
+    initialize_prefixed_session_state("form_", form_defaults)
+
+
+def handle_start_new_entrada():
+    """Abre o cierra el formulario principal según el botón de inicio."""
+    if st.button("📦 Iniciar nueva entrada"):
+        st.session_state.current_form = "open"
+        st.session_state.movement_items = []
+        st.session_state.form_id_proyecto = None
+        st.session_state.entrada_submitted = False
+        st.session_state.entrada_pending_confirmation = False
+        st.session_state.entrada_confirmed_db_check = False
+    
+
+
+def render_existing_movement_items():
+    """Muestra los ítems ya agregados al movimiento actual."""
+    if not st.session_state.movement_items:
+        return
+
+    st.write("**Items agregados a esta entrada:**")
+    for idx, item in enumerate(st.session_state.movement_items):
+        articulo = get_article_by_name(item["nombre_item"])
+        col1, col2, col3 = st.columns([3, 1, 1])
+        with col1:
+            if item.get("es_cable") or (articulo and articulo.es_cable):
+                st.write(
+                    f"{idx + 1}. {item['nombre_item']} - "
+                    f"{item['nombre_punta']} - Longitud: {item['longitud']} m - Color: {item.get('color', 'N/A')}"
+                )
+            else:
+                st.write(
+                    f"{idx + 1}. {item.get('nombre_item', 'no name')} - "
+                    f"Cantidad: {item['cantidad']}"
+                )
+
+        with col3:
+            if st.button("🗑️", key=f"delete_{idx}"):
+                st.session_state.movement_items.pop(idx)
+                st.rerun()
+
+    st.divider()
+
+
+def render_entrada_item_form(nombres_articulos, nombres_cables):
+    """Renderiza el selector de ítem y devuelve su nombre junto al estado de validación."""
+    st.subheader("Agregar item a la entrada")
+
+    nombre_item = st.selectbox(
+        "Selecciona un item existente o crea uno nuevo:",
+        ["Otro (escribir nuevo)"] + nombres_articulos,
+        key="form_item_select",
+    )
+    handle_item_selection_change(nombre_item)
+
+    if nombre_item == "Otro (escribir nuevo)":
+        display_new_item_form()
+    elif nombre_item in nombres_cables:
+        display_cable_details_form()
+    else:
+        display_quantity_form("form_cantidad_input_existing")
+
+    errors = validate_form_inputs(nombre_item, nombres_cables)
+    if errors:
+        st.error("\n".join(["❌ " + error for error in errors]))
+
+    return nombre_item, not errors
+
+
+def render_entrada_action_buttons(nombre_item, form_defaults, add_item_enabled):
+    """Renderiza las acciones principales del formulario abierto."""
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("➕ Agregar item", disabled=not add_item_enabled):
+            item_data = gather_form_data(nombre_item)
+          
+            st.session_state.movement_items.append(item_data)
+            for key in form_defaults.keys():
+                st.session_state[f"form_{key}"] = form_defaults[key]
+            st.rerun()
+
+    with col2:
+        if st.button("✅ Finalizar entrada"):
+            if st.session_state.movement_items:
+                st.session_state.entrada_pending_confirmation = True
+                st.session_state.current_form = "closed"
+                #st.rerun()
+            else:
+                st.warning("Debe agregar al menos un item")
+
+    with col3:
+        if st.button("❌ Cancelar"):
+            st.session_state.current_form = "closed"
+            st.session_state.movement_items = []
+            st.session_state.entrada_pending_confirmation = False
+            st.session_state.entrada_confirmed_db_check = False
+
+
+def get_entrada_submission_result():
+    """Devuelve el payload final cuando la entrada quedó confirmada."""
+    if (
+        st.session_state.current_form == "closed"
+        and st.session_state.movement_items
+        and not st.session_state.get("entrada_pending_confirmation", False)
+        and not st.session_state.entrada_submitted
+    ):
+        st.session_state.entrada_submitted = True
+        return {
+            "movement_items": st.session_state.movement_items,
+            "id_proyecto": st.session_state.form_id_proyecto,
+            "responsable": st.session_state.get("form_responsable", ""),
+        }
+
+    return None
 
 
 # =============================================================================
@@ -230,30 +388,9 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
         "color": None,
     }
 
-    # Inicializar estado del movimiento
-    if "movement_items" not in st.session_state:
-        st.session_state.movement_items = []
-    if "current_form" not in st.session_state:
-        st.session_state.current_form = "closed"
-    if "entrada_submitted" not in st.session_state:
-        st.session_state.entrada_submitted = False
-    if "entrada_pending_confirmation" not in st.session_state:
-        st.session_state.entrada_pending_confirmation = False
-    if "entrada_confirmed_db_check" not in st.session_state:
-        st.session_state.entrada_confirmed_db_check = False
+    initialize_entrada_state(form_defaults)
+    handle_start_new_entrada()
 
-    initialize_prefixed_session_state("form_", form_defaults)
-
-    # ========== BOTÓN DE INICIO ==========
-    if st.button("📦 Iniciar nueva entrada"):
-        st.session_state.current_form = "open"
-        st.session_state.movement_items = []
-        st.session_state.form_id_proyecto = None
-        st.session_state.entrada_submitted = False
-        st.session_state.entrada_pending_confirmation = False
-        st.session_state.entrada_confirmed_db_check = False
-
-    # ========== FORMULARIO ABIERTO ==========
     if st.session_state.current_form == "open":
         st.subheader("📋 Nueva Entrada de Inventario")
 
@@ -274,80 +411,15 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
 
         st.divider()
 
-        # --- Ítems ya agregados ---
-        if st.session_state.movement_items:
-            st.write("**Items agregados a esta entrada:**")
-            for idx, item in enumerate(st.session_state.movement_items):
-                articulo = get_article_by_name(item["nombre_item"])
-                col1, col2, col3 = st.columns([3, 1, 1])
-                with col1:
-                    if item.get("es_cable") or (articulo and articulo.es_cable):
-                        st.write(
-                            f"{idx + 1}. {item['nombre_item']} - "
-                            f"{item['nombre_punta']} - Longitud: {item['longitud']} m - Color: {item.get('color', 'N/A')}"
-                        )
-                    else:
-                        st.write(
-                            f"{idx + 1}. {item['nombre_item']} - "
-                            f"Cantidad: {item['cantidad']}"
-                        )
-                with col3:
-                    if st.button("🗑️", key=f"delete_{idx}"):
-                        st.session_state.movement_items.pop(idx)
-                        st.rerun()
-            st.divider()
+        try:
+            render_existing_movement_items()
+        except Exception as e:
+            st.error(f"Error al mostrar items agregados: {e}")
 
-        # --- Formulario para agregar un ítem ---
-        st.subheader("Agregar item a la entrada")
-
-        nombre_item = st.selectbox(
-            "Selecciona un item existente o crea uno nuevo:",
-            ["Otro (escribir nuevo)"] + nombres_articulos,
-            key="form_item_select",
+        nombre_item, add_item_enabled = render_entrada_item_form(
+            nombres_articulos, nombres_cables
         )
-        st.session_state.form_is_new = nombre_item == "Otro (escribir nuevo)"
-
-        # Mostrar formulario adecuado según selección
-        if nombre_item == "Otro (escribir nuevo)":
-            display_new_item_form()
-        elif nombre_item in nombres_cables:
-            display_cable_details_form()
-        else:
-            display_quantity_form("form_cantidad_input_existing")
-
-        # --- Validación ---
-        errors = validate_form_inputs(nombre_item, nombres_cables)
-        if errors:
-            st.error("\n".join(["❌ " + error for error in errors]))
-            add_item_disabled = True
-        else:
-            add_item_disabled = False
-
-        # --- Botones de acción ---
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("➕ Agregar item", disabled=add_item_disabled):
-                item_data = gather_form_data(nombre_item)
-                st.session_state.movement_items.append(item_data)
-                for key in form_defaults.keys():
-                    st.session_state[f"form_{key}"] = form_defaults[key]
-                st.rerun()
-
-        with col2:
-            if st.button("✅ Finalizar entrada"):
-                if st.session_state.movement_items:
-                    st.session_state.entrada_pending_confirmation = True
-                    
-                    st.rerun()
-                else:
-                    st.warning("Debe agregar al menos un item")
-
-        with col3:
-            if st.button("❌ Cancelar"):
-                st.session_state.current_form = "closed"
-                st.session_state.movement_items = []
-                st.session_state.entrada_pending_confirmation = False
-                st.session_state.entrada_confirmed_db_check = False
+        render_entrada_action_buttons(nombre_item, form_defaults, add_item_enabled)
 
         if check_movement_db(
             st.session_state.movement_items,
@@ -359,21 +431,7 @@ def form_entrada(nombres_articulos, nombres_cables, proyectos_info):
             st.session_state.current_form = "closed"
             st.rerun()
 
-    # Retornar datos del movimiento cuando estén listos
-    if (
-        st.session_state.current_form == "closed"
-        and st.session_state.movement_items
-        and not st.session_state.get("entrada_pending_confirmation", False)
-        and not st.session_state.entrada_submitted
-    ):
-        st.session_state.entrada_submitted = True
-        return {
-            "movement_items": st.session_state.movement_items,
-            "id_proyecto": st.session_state.form_id_proyecto,
-            "responsable": st.session_state.get("form_responsable", ""),
-        }
-
-    return None
+    return get_entrada_submission_result()
 
 
 # =============================================================================

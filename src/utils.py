@@ -229,32 +229,35 @@ def display_recent_movements_table(movements, proyectos_info):
         movements (list[dict]): Movimientos obtenidos desde data.py.
         proyectos_info (dict): {id_proyecto: (nombre_obra, c_c)}.
     """
-    if movements:
-        for mov in movements:
-            proyecto = proyectos_info.get(
-                mov["id_proyecto"], ("Sin proyecto", "N/A")
-            )
-            row1, row2, row3, row4 = st.columns(4)
-            with row1:
-                st.write(f"Mov No. {mov['id_movimiento']}")
-            with row2:
-                st.write(
-                    f"Fecha: {mov['fecha_hora'].strftime('%d/%m/%Y %H:%M') if mov['fecha_hora'] else 'N/A'}"
+    try:
+        if movements:
+            for mov in movements:
+                proyecto = proyectos_info.get(
+                    mov["id_proyecto"], ("Sin proyecto", "N/A")
                 )
-            with row3:
-                st.write(f"C.C: {proyecto[0]} {proyecto[1]}")
-            with row4:
-                st.write(f"Responsable: {mov['responsable']}") if mov.get("responsable") else st.write("Responsable: N/A")
+                row1, row2, row3, row4 = st.columns(4)
+                with row1:
+                    st.write(f"Mov No. {mov['id_movimiento']}")
+                with row2:
+                    st.write(
+                        f"Fecha: {mov['fecha_hora'].strftime('%d/%m/%Y %H:%M') if mov['fecha_hora'] else 'N/A'}"
+                    )
+                with row3:
+                    st.write(f"C.C: {proyecto[0]} {proyecto[1]}")
+                with row4:
+                    st.write(f"Responsable: {mov['responsable']}") if mov.get("responsable") else st.write("Responsable: N/A")
 
-            if mov["items"]:
-                df = pd.DataFrame(mov["items"])
-                st.dataframe(df, width="stretch")
-            else:
-                st.write("No hay items en este movimiento.")
+                if mov["items"]:
+                    df = pd.DataFrame(mov["items"])
+                    st.dataframe(df)
+                else:
+                    st.write("No hay items en este movimiento.")
 
-            st.divider()
-    else:
-        st.write("No hay movimientos registrados.")
+                st.divider()
+        else:
+            st.write("No hay movimientos registrados.")
+    except Exception as e:
+        st.error(f"Error al mostrar movimientos recientes: {e}")
 
 
 def handle_movement_submission(

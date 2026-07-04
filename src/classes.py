@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, Enum, ForeignKey
 import enum
 Base = declarative_base()
 class CatEnum(enum.Enum):
-    cable = "cable"
+    
     componente = "componente"
     albanileria = 'albanileria'
     aire_acondicionado = 'aire_acondicionado'

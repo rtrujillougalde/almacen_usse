@@ -893,8 +893,11 @@ def get_recent_movements(tipo, limit=5):
             })
 
         return [result_by_id[mov.id_movimiento] for mov in movimientos]
+    except Exception as e:
+        st.error(f"Error en get_recent_movements {e}")
     finally:
         session.close()
+    
 
 
 # =============================================================================
