@@ -7,21 +7,21 @@ FactoryBot.define do
     role { :consulta }
 
     trait :admin do
-      username { "admin" }
-      email { "admin@usse.local" }
       role { :admin }
+      sequence(:username) { |n| "admin#{n}" }
+      sequence(:email) { |n| "admin#{n}@usse.local" }
     end
 
     trait :operador do
-      username { "operador" }
-      email { "operador@usse.local" }
       role { :operador }
+      sequence(:username) { |n| "operador#{n}" }
+      sequence(:email) { |n| "operador#{n}@usse.local" }
     end
 
     trait :consulta do
-      username { "consulta" }
-      email { "consulta@usse.local" }
       role { :consulta }
+      sequence(:username) { |n| "consulta#{n}" }
+      sequence(:email) { |n| "consulta#{n}@usse.local" }
     end
   end
 end
