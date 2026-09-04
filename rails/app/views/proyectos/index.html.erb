@@ -1,3 +1,56 @@
-<%= render "shared/coming_soon",
-      title: "Proyectos",
-      description: "Centros de costos y obras" %>
+<%= render "shared/page_header", title: "Proyectos", subtitle: "Centros de costos y obras" %>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover table-sm mb-0 align-middle">
+            <thead>
+              <tr>
+                <th>C.C.</th>
+                <th>Obra</th>
+                <th>Encargado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @proyectos.each do |p| %>
+                <tr>
+                  <td><%= p.c_c %></td>
+                  <td><%= p.nombre_obra %></td>
+                  <td><%= p.encargado %></td>
+                </tr>
+              <% end %>
+              <% if @proyectos.empty? %>
+                <tr><td colspan="3" class="text-center text-secondary py-4">No hay proyectos.</td></tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Nuevo proyecto</h2>
+        <%= form_with model: @proyecto, url: proyectos_path do |f| %>
+          <div class="mb-3">
+            <%= f.label :c_c, "Centro de costos (C.C.)", class: "form-label" %>
+            <%= f.number_field :c_c, class: "form-control", required: true, min: 1 %>
+          </div>
+          <div class="mb-3">
+            <%= f.label :nombre_obra, "Nombre de obra", class: "form-label" %>
+            <%= f.text_field :nombre_obra, class: "form-control", required: true %>
+          </div>
+          <div class="mb-3">
+            <%= f.label :encargado, class: "form-label" %>
+            <%= f.text_field :encargado, class: "form-control", required: true %>
+          </div>
+          <%= f.submit "Crear", class: "btn btn-primary" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
