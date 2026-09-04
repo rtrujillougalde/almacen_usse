@@ -3,7 +3,13 @@ Rails.application.routes.draw do
 
   get "up" => "rails/health#show", as: :rails_health_check
 
-  resources :proveedores, only: %i[index new create edit update]
+  # Explicit singular helper names so Spanish pluralization cannot break path helpers.
+  resources :proveedores, only: %i[index create]
+  get "proveedores/new", to: "proveedores#new", as: :new_proveedor
+  get "proveedores/:id/edit", to: "proveedores#edit", as: :edit_proveedor
+  patch "proveedores/:id", to: "proveedores#update", as: :proveedor
+  put "proveedores/:id", to: "proveedores#update"
+
   resources :proyectos, only: %i[index create]
   resources :articulos, only: %i[edit update]
   resources :entradas, only: %i[index create]

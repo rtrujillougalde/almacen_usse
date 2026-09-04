@@ -3,6 +3,13 @@ require "rails_helper"
 RSpec.describe "Proveedores", type: :request do
   before { sign_in_as(:admin) }
 
+  it "renders index with new proveedor link" do
+    get proveedores_path
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Nuevo proveedor")
+    expect(response.body).to include(new_proveedor_path)
+  end
+
   describe "GET /proveedores" do
     it "lists proveedores" do
       create(:proveedor, nombre: "ACME Test")

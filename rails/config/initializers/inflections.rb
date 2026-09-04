@@ -1,5 +1,9 @@
 ActiveSupport::Inflector.inflections(:en) do |inflect|
+  # Explicit rules first — "proveedores".singularize would otherwise become "proveedore".
+  inflect.singular(/proveedores$/i, "proveedor")
+  inflect.plural(/proveedor$/i, "proveedores")
   inflect.irregular "proveedor", "proveedores"
+
   inflect.irregular "proyecto", "proyectos"
   inflect.irregular "articulo", "articulos"
   inflect.irregular "movimiento", "movimientos"
