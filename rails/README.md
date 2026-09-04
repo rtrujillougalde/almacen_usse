@@ -24,3 +24,7 @@ Tailwind was removed in favor of vendored Bootstrap 5.3 under `app/assets/styles
 - Devise login with **username** (no public registration).
 - Roles: `admin`, `operador`, `consulta` (same page access as the Streamlit app).
 - Seed users (`bin/rails db:seed`): `admin` / `operador` / `consulta` — password `password`.
+
+## Domain schema (Stage 4)
+
+Spanish table/column names match the legacy MySQL schema (`proveedores`, `articulos`, `proyectos`, `movimientos`, `stock_puntas`, `detalle_movimientos`) with custom primary keys (`id_proveedor`, etc.). Domain tables have no `created_at`/`updated_at`.
