@@ -49,7 +49,11 @@ class ArticulosController < ApplicationController
   end
 
   def punta_params_list
-    Array(params.dig(:articulo, :puntas)).map do |p|
+    raw = params.dig(:articulo, :puntas)
+    return [] if raw.blank?
+
+    values = raw.respond_to?(:values) ? raw.values : Array(raw)
+    values.map do |p|
       p.permit(:id_punta, :nombre_punta, :longitud, :color)
     end
   end

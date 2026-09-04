@@ -1,6 +1,8 @@
 require "prawn"
 require "prawn/table"
 
+Prawn::Fonts::AFM.hide_m17n_warning = true
+
 module Reportes
   class PdfGenerator
     def self.movement(title:, cc:, rows:)
