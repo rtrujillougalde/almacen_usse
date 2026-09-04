@@ -1,0 +1,107 @@
+<%= render "shared/page_header", title: "Editar artículo", subtitle: @articulo.nombre %>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-4">
+    <%= form_with model: @articulo, url: articulo_path(@articulo), method: :patch do |f| %>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= f.label :nombre, class: "form-label" %>
+          <%= f.text_field :nombre, class: "form-control", required: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= f.label :num_catalogo, "Núm. catálogo", class: "form-label" %>
+          <%= f.text_field :num_catalogo, class: "form-control" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= f.label :tipo, class: "form-label" %>
+          <%= f.select :tipo, Articulo.tipos.keys, {}, class: "form-select" %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= f.label :categoria, class: "form-label" %>
+          <%= f.select :categoria, Articulo::CATEGORIAS, { include_blank: true }, class: "form-select" %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= f.label :unidad_medida, class: "form-label" %>
+          <%= f.select :unidad_medida, ApplicationHelper::UNIDADES, { include_blank: true }, class: "form-select" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= f.label :cantidad_en_stock, "Cantidad en stock", class: "form-label" %>
+          <%= f.number_field :cantidad_en_stock, class: "form-control", step: :any, disabled: @articulo.es_cable? %>
+          <% if @articulo.es_cable? %>
+            <div class="form-text">Para cables, el stock es la suma de puntas disponibles.</div>
+            <%= f.hidden_field :cantidad_en_stock %>
+          <% end %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= f.label :stock_minimo, "Stock mínimo", class: "form-label" %>
+          <%= f.number_field :stock_minimo, class: "form-control", step: :any %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= f.label :precio_unitario, "Precio unitario", class: "form-label" %>
+          <%= f.number_field :precio_unitario, class: "form-control", step: :any %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= f.label :almacen, "Almacén", class: "form-label" %>
+          <%= f.select :almacen, Articulo.almacens.keys, { include_blank: true }, class: "form-select" %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= f.label :ubicacion, class: "form-label" %>
+          <%= f.select :ubicacion, Articulo.ubicacions.keys, { include_blank: true }, class: "form-select" %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= f.label :proveedor, "Proveedor", class: "form-label" %>
+          <%= f.collection_select :proveedor, @proveedores, :id_proveedor, :nombre, { include_blank: true }, class: "form-select" %>
+        </div>
+      </div>
+
+      <div class="form-check mb-3">
+        <%= f.check_box :es_cable, class: "form-check-input", disabled: @articulo.es_cable? %>
+        <%= f.label :es_cable, "Es cable", class: "form-check-label" %>
+        <% if @articulo.es_cable? %><%= f.hidden_field :es_cable, value: "1" %><% end %>
+      </div>
+
+      <% if @articulo.es_cable? %>
+        <h3 class="h6 mt-4">Puntas disponibles</h3>
+        <% @available_puntas.each_with_index do |punta, idx| %>
+          <div class="row g-2 mb-2 border-bottom pb-2">
+            <%= hidden_field_tag "articulo[puntas][#{idx}][id_punta]", punta.id_punta %>
+            <div class="col-md-4">
+              <label class="form-label">Nombre</label>
+              <%= text_field_tag "articulo[puntas][#{idx}][nombre_punta]", punta.nombre_punta, class: "form-control", required: true %>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Longitud</label>
+              <%= number_field_tag "articulo[puntas][#{idx}][longitud]", punta.longitud, class: "form-control", step: :any, required: true %>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Color</label>
+              <%= text_field_tag "articulo[puntas][#{idx}][color]", punta.color, class: "form-control" %>
+            </div>
+          </div>
+        <% end %>
+        <% if @available_puntas.empty? %>
+          <p class="text-secondary">No hay puntas disponibles (todas usadas en salidas).</p>
+        <% end %>
+      <% end %>
+
+      <div class="mb-3 mt-3">
+        <label class="form-label">Contraseña admin (si cambias stock o longitudes)</label>
+        <%= password_field_tag :admin_password, nil, class: "form-control", autocomplete: "current-password" %>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Guardar", class: "btn btn-primary" %>
+        <%= link_to "Cancelar", inventario_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -1,3 +1,64 @@
-<%= render "shared/coming_soon",
-      title: "Inventario",
-      description: "Consulta y edición del inventario" %>
+<%= render "shared/page_header", title: "Inventario", subtitle: "Artículos en almacén" %>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <%= form_with url: inventario_path, method: :get, local: true, class: "row g-3 align-items-end" do %>
+      <div class="col-md-3">
+        <label class="form-label">Categoría</label>
+        <%= select_tag :categoria, options_for_select(@categorias, params[:categoria] || "Todas"), class: "form-select" %>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Tipo</label>
+        <%= select_tag :tipo, options_for_select(@tipos, params[:tipo] || "Todos"), class: "form-select" %>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Nombre</label>
+        <%= text_field_tag :nombre, params[:nombre], class: "form-control", placeholder: "Buscar..." %>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <%= submit_tag "Aplicar", class: "btn btn-primary" %>
+        <%= link_to "Limpiar", inventario_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-sm mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Categoría</th>
+            <th>Stock</th>
+            <th>Mínimo</th>
+            <th>Unidad</th>
+            <th>Proveedor</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @articulos.each do |a| %>
+            <tr class="<%= 'table-warning' if a.low_stock? %>">
+              <td><%= a.nombre %><% if a.es_cable? %> <span class="badge text-bg-info">cable</span><% end %></td>
+              <td><%= a.tipo %></td>
+              <td><%= a.categoria %></td>
+              <td><%= a.cantidad_en_stock %></td>
+              <td><%= a.stock_minimo %></td>
+              <td><%= a.unidad_medida %></td>
+              <td><%= a.proveedor&.nombre %></td>
+              <td class="text-end">
+                <%= link_to "Editar", edit_articulo_path(a), class: "btn btn-sm btn-outline-secondary" %>
+              </td>
+            </tr>
+          <% end %>
+          <% if @articulos.empty? %>
+            <tr><td colspan="8" class="text-center text-secondary py-4">Sin artículos.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
