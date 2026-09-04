@@ -7,4 +7,8 @@ class Proyecto < ApplicationRecord
 
   validates :c_c, presence: true, uniqueness: true
   validates :nombre_obra, presence: true
+
+  def nombre_obra_with_cc
+    "#{c_c} | #{nombre_obra}"
+  end
 end
