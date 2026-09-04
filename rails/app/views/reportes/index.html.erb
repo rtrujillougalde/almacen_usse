@@ -1,3 +1,33 @@
-<%= render "shared/coming_soon",
-      title: "Reportes",
-      description: "Reportes PDF y Excel" %>
+<%= render "shared/page_header", title: "Reportes", subtitle: "PDF y Excel por centro de costos" %>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-4">
+    <%= form_with url: reportes_path, method: :post do %>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Centro de costos</label>
+          <%= select_tag :c_c, options_for_select(@centros), class: "form-select", include_blank: "Selecciona...", required: true %>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Desde</label>
+          <%= date_field_tag :date_from, params[:date_from], class: "form-control" %>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Hasta</label>
+          <%= date_field_tag :date_to, params[:date_to], class: "form-control" %>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Tipo</label>
+          <%= select_tag :kind, options_for_select([["Entradas", "entrada"], ["Salidas", "salida"], ["Comparativo", "comparativo"]], params[:kind]), class: "form-select" %>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Formato</label>
+          <%= select_tag :file_format, options_for_select([["PDF", "pdf"], ["Excel", "xlsx"]], params[:file_format] || "pdf"), class: "form-select" %>
+        </div>
+      </div>
+      <div class="mt-4">
+        <%= submit_tag "Descargar", class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

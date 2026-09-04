@@ -8,9 +8,9 @@ Rails.application.routes.draw do
   resources :articulos, only: %i[edit update]
   resources :entradas, only: %i[index create]
   resources :salidas, only: %i[index create]
+  resources :reportes, only: %i[index create]
 
   get "inventario", to: "inventario#index", as: :inventario
-  get "reportes", to: "reportes#index", as: :reportes
 
   root "inventario#index"
 end
