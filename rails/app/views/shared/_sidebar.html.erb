@@ -1,0 +1,24 @@
+<aside class="app-sidebar text-white p-3">
+  <div class="d-none d-md-flex align-items-center gap-2 mb-4 px-1">
+    <%= image_tag "logo_usse_2.jpg", alt: "USSE", class: "app-logo rounded bg-white p-1" %>
+    <div>
+      <div class="fw-semibold lh-sm">Almacén USSE</div>
+      <small class="text-white-50">Gestión de inventario</small>
+    </div>
+  </div>
+
+  <nav class="nav nav-pills flex-column gap-1" aria-label="Secciones">
+    <%= link_to "Inventario", inventario_path,
+          class: "nav-link #{'active' if controller_name == 'inventario'}" %>
+    <%= link_to "Entradas", entradas_path,
+          class: "nav-link #{'active' if controller_name == 'entradas'}" %>
+    <%= link_to "Salidas", salidas_path,
+          class: "nav-link #{'active' if controller_name == 'salidas'}" %>
+    <%= link_to "Proyectos", proyectos_path,
+          class: "nav-link #{'active' if controller_name == 'proyectos'}" %>
+    <%= link_to "Reportes", reportes_path,
+          class: "nav-link #{'active' if controller_name == 'reportes'}" %>
+    <%= link_to "Proveedores", proveedores_path,
+          class: "nav-link #{'active' if controller_name == 'proveedores'}" %>
+  </nav>
+</aside>

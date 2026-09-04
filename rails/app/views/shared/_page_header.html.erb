@@ -1,0 +1,14 @@
+<%# locals: title, subtitle (optional) %>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+  <div>
+    <h1 class="h3 mb-1"><%= title %></h1>
+    <% if local_assigns[:subtitle].present? %>
+      <p class="text-secondary mb-0"><%= subtitle %></p>
+    <% end %>
+  </div>
+  <% if content_for?(:page_actions) %>
+    <div class="d-flex flex-wrap gap-2">
+      <%= yield :page_actions %>
+    </div>
+  <% end %>
+</div>

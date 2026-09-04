@@ -1,24 +1,20 @@
-# README
+# Almacén USSE (Rails)
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Rails 8 port of the USSE warehouse app. Run from this directory:
 
-Things you may want to cover:
+```bash
+bin/setup
+bin/dev
+```
 
-* Ruby version
+## UI conventions (Bootstrap 5)
 
-* System dependencies
+- Primary actions: `btn btn-primary`
+- Secondary / cancel: `btn btn-outline-secondary`
+- Tables: `table table-striped table-hover table-sm`
+- Forms: `form-label`, `form-control`, `form-select`, `mb-3`
+- Flashes: Bootstrap `alert` (see `shared/flashes`)
+- Low stock (later): `table-warning` / `text-danger`
+- Shared chrome: `shared/sidebar`, `shared/page_header`, `shared/coming_soon`
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+Tailwind was removed in favor of vendored Bootstrap 5.3 under `app/assets/stylesheets/bootstrap.min.css` and `vendor/javascript/bootstrap.bundle.min.js`.
