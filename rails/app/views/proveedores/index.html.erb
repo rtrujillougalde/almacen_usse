@@ -1,3 +1,38 @@
-<%= render "shared/coming_soon",
-      title: "Proveedores",
-      description: "Catálogo de proveedores" %>
+<% content_for :page_actions do %>
+  <%= link_to "Nuevo proveedor", new_proveedor_path, class: "btn btn-primary" %>
+<% end %>
+<%= render "shared/page_header", title: "Proveedores", subtitle: "Catálogo de proveedores" %>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-sm mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Contacto</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @proveedores.each do |p| %>
+            <tr>
+              <td><%= p.nombre %></td>
+              <td><%= p.telefono %></td>
+              <td><%= p.email %></td>
+              <td><%= p.contacto %></td>
+              <td class="text-end">
+                <%= link_to "Editar", edit_proveedor_path(p), class: "btn btn-sm btn-outline-secondary" %>
+              </td>
+            </tr>
+          <% end %>
+          <% if @proveedores.empty? %>
+            <tr><td colspan="5" class="text-center text-secondary py-4">No hay proveedores.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

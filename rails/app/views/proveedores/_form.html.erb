@@ -1,0 +1,47 @@
+<%= form_with model: proveedor, url: (proveedor.persisted? ? proveedor_path(proveedor) : proveedores_path), class: "needs-validation" do |f| %>
+  <% if proveedor.errors.any? %>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <% proveedor.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= f.label :nombre, class: "form-label" %>
+    <%= f.text_field :nombre, class: "form-control", required: true %>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= f.label :telefono, class: "form-label" %>
+      <%= f.text_field :telefono, class: "form-control" %>
+    </div>
+    <div class="col-md-6 mb-3">
+      <%= f.label :email, class: "form-label" %>
+      <%= f.email_field :email, class: "form-control" %>
+    </div>
+  </div>
+  <div class="mb-3">
+    <%= f.label :pagina_web, "Página web", class: "form-label" %>
+    <%= f.text_field :pagina_web, class: "form-control" %>
+  </div>
+  <div class="mb-3">
+    <%= f.label :direccion, "Dirección", class: "form-label" %>
+    <%= f.text_field :direccion, class: "form-control" %>
+  </div>
+  <div class="mb-3">
+    <%= f.label :contacto, class: "form-label" %>
+    <%= f.text_field :contacto, class: "form-control" %>
+  </div>
+  <div class="mb-3">
+    <%= f.label :notas, class: "form-label" %>
+    <%= f.text_area :notas, class: "form-control", rows: 3 %>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit (proveedor.persisted? ? "Guardar" : "Crear"), class: "btn btn-primary" %>
+    <%= link_to "Cancelar", proveedores_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
