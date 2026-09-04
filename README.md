@@ -2,7 +2,10 @@
 
 Aplicación web para la gestión del almacén de herramientas y materiales de USSE. Permite consultar el inventario, registrar entradas y salidas de artículos, administrar proyectos y generar reportes en PDF y Excel.
 
-Está construida con **Streamlit** para la interfaz, **SQLAlchemy** para el acceso a MySQL y **ReportLab** para la generación de reportes PDF.
+**Estado del stack:** la app en producción sigue en **Streamlit** (`src/`). Se está portando a **Rails 8** en el subdirectorio [`rails/`](rails/) (Hotwire + MySQL). Ambos conviven hasta completar el port.
+
+- **Python (actual):** Streamlit + SQLAlchemy + ReportLab — ver instalación más abajo.
+- **Rails (en construcción):** `cd rails && bin/setup && bin/dev` (Ruby 3.2+, MySQL en `almacen_usse_rails_development`).
 
 ---
 

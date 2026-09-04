@@ -4,3 +4,19 @@
 __pycache__/
 *.pyc
 *.pdf
+
+# Rails app
+rails/.env*
+rails/log/*
+rails/tmp/*
+!rails/log/.keep
+!rails/tmp/.keep
+rails/storage/*
+!rails/storage/.keep
+rails/app/assets/builds/*
+!rails/app/assets/builds/.keep
+rails/config/master.key
+rails/config/*.key
+rails/config/credentials/*.key
+rails/.bundle
+rails/public/assets
