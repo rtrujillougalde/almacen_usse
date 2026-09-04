@@ -31,8 +31,12 @@ class EntradasController < ApplicationController
   private
 
   def parsed_items
-    Array(params[:items]).filter_map do |raw|
-      h = raw.permit(
+    raw = params[:items]
+    return [] if raw.blank?
+
+    values = raw.respond_to?(:values) ? raw.values : Array(raw)
+    values.filter_map do |item|
+      h = item.permit(
         :is_new, :id_articulo, :nombre, :num_catalogo, :tipo, :precio_unitario,
         :unidad_medida, :categoria, :stock_minimo, :es_cable, :nombre_punta,
         :longitud, :cantidad, :color

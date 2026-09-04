@@ -30,8 +30,12 @@ class SalidasController < ApplicationController
   private
 
   def parsed_items
-    Array(params[:items]).filter_map do |raw|
-      h = raw.permit(:id_articulo, :cantidad, :id_punta).to_h.symbolize_keys
+    raw = params[:items]
+    return [] if raw.blank?
+
+    values = raw.respond_to?(:values) ? raw.values : Array(raw)
+    values.filter_map do |item|
+      h = item.permit(:id_articulo, :cantidad, :id_punta).to_h.symbolize_keys
       next if h[:id_articulo].blank?
       h
     end
