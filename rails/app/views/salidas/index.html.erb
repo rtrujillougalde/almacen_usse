@@ -1,79 +1,167 @@
 <%= render "shared/page_header", title: "Salidas", subtitle: "Registro de salidas a proyectos" %>
 
-<div class="row g-4">
-  <div class="col-lg-7">
-    <div class="card shadow-sm border-0 mb-4">
-      <div class="card-body p-4">
-        <h2 class="h5 mb-3">Nueva salida</h2>
-        <%= form_with url: salidas_path, method: :post do %>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Proyecto (C.C.)</label>
-              <%= select_tag :id_proyecto,
-                    options_from_collection_for_select(@proyectos, :id_proyecto, :nombre_obra_with_cc),
-                    class: "form-select", required: true, include_blank: "Selecciona..." %>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Responsable</label>
-              <%= text_field_tag :responsable, params[:responsable], class: "form-control", required: true %>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Observaciones</label>
-            <%= text_area_tag :observaciones, params[:observaciones], class: "form-control", rows: 2 %>
-          </div>
-
-          <h3 class="h6">Líneas (hasta 5)</h3>
-          <% 5.times do |i| %>
-            <div class="border rounded p-3 mb-3 bg-light">
-              <div class="row g-2">
-                <div class="col-md-6">
-                  <label class="form-label">Artículo</label>
-                  <%= select_tag "items[#{i}][id_articulo]",
-                        options_from_collection_for_select(@articulos, :id_articulo, :nombre),
-                        class: "form-select", include_blank: "—" %>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Cantidad</label>
-                  <%= number_field_tag "items[#{i}][cantidad]", nil, class: "form-control", step: :any, min: 0 %>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Punta (si cable)</label>
-                  <%= select_tag "items[#{i}][id_punta]",
-                        options_for_select(
-                          @puntas_by_articulo.values.flatten.map { |p| ["#{p.articulo.nombre}: #{p.nombre_punta} (#{p.longitud})", p.id_punta] }
-                        ),
-                        class: "form-select", include_blank: "—" %>
-                </div>
-              </div>
-            </div>
-          <% end %>
-
-          <%= submit_tag "Registrar salida", class: "btn btn-primary", data: { turbo_confirm: "¿Confirmar salida?" } %>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-5">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <h2 class="h5 mb-3">Salidas recientes</h2>
-        <% @recent.each do |m| %>
-          <div class="mb-3 border-bottom pb-2">
-            <div class="fw-semibold">#<%= m.id_movimiento %> · <%= m.fecha_hora&.strftime("%Y-%m-%d %H:%M") %></div>
-            <div class="small text-secondary"><%= m.proyecto && proyecto_label(m.proyecto) %> · <%= m.responsable %></div>
-            <ul class="small mb-0">
-              <% m.detalle_movimientos.each do |d| %>
-                <li><%= d.articulo&.nombre %>: <%= d.cantidad %></li>
-              <% end %>
-            </ul>
-          </div>
-        <% end %>
-        <% if @recent.empty? %>
-          <p class="text-secondary mb-0">Sin salidas aún.</p>
-        <% end %>
-      </div>
+<div class="mb-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Movimientos de Salida Recientes</h2>
+      <%= render "shared/recent_movements", recent: @recent %>
     </div>
   </div>
 </div>
+
+<% if @pending_confirmation %>
+  <div class="card shadow-sm border-0 border-warning mb-4">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-3">Confirmar salida</h2>
+      <p class="text-secondary">Revisa los ítems que se registrarán:</p>
+      <ul class="mb-4">
+        <% @cart_items.each_with_index do |item, idx| %>
+          <li>
+            <% if item["es_cable"] %>
+              <%= idx + 1 %>. <%= item["nombre_item"] %> - <%= item["nombre_punta"] %> -
+              Longitud: <%= item["longitud"] %> m
+            <% else %>
+              <%= idx + 1 %>. <%= item["nombre_item"] %> - Cantidad: <%= item["cantidad"] %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+      <div class="d-flex gap-2">
+        <%= button_to "Aceptar", salidas_path, method: :post, class: "btn btn-primary" %>
+        <%= button_to "Cancelar", dismiss_confirmation_salidas_path, method: :delete, class: "btn btn-outline-secondary" %>
+      </div>
+    </div>
+  </div>
+<% elsif @form_open %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-3">Nueva Salida de Inventario</h2>
+
+      <%= form_with url: add_item_salidas_path, method: :post, class: "mb-0" do %>
+        <div class="mb-4" data-controller="project-selector">
+          <h3 class="h6">Información del Proyecto</h3>
+          <label class="form-label">Selecciona un proyecto:</label>
+          <select name="id_proyecto" class="form-select mb-3"
+                  data-project-selector-target="select"
+                  data-action="change->project-selector#refresh">
+            <option value="">Selecciona...</option>
+            <% @proyectos.each do |p| %>
+              <option value="<%= p.id_proyecto %>"
+                      data-cc="<%= p.c_c %>"
+                      data-obra="<%= p.nombre_obra %>"
+                      <%= "selected" if @cart["id_proyecto"].to_s == p.id_proyecto.to_s %>>
+                <%= p.nombre_obra_with_cc %>
+              </option>
+            <% end %>
+          </select>
+          <div class="row g-3 mb-3 d-none" data-project-selector-target="metrics">
+            <div class="col-sm-6">
+              <div class="border rounded p-3 bg-light">
+                <div class="small text-secondary">Centro de Costo</div>
+                <div class="fs-5 fw-semibold" data-project-selector-target="cc"></div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="border rounded p-3 bg-light">
+                <div class="small text-secondary">Nombre Obra</div>
+                <div class="fs-5 fw-semibold" data-project-selector-target="obra"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Responsable de la salida</label>
+          <%= text_field_tag :responsable, @cart["responsable"], class: "form-control" %>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Observaciones (opcional)</label>
+          <%= text_area_tag :observaciones, @cart["observaciones"], class: "form-control", rows: 2 %>
+        </div>
+
+        <hr>
+
+        <% if @cart_items.any? %>
+          <h3 class="h6">Items a retirar:</h3>
+          <ul class="list-group mb-3">
+            <% @cart_items.each_with_index do |item, idx| %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                  <% if item["es_cable"] %>
+                    <%= idx + 1 %>. <%= item["nombre_item"] %> - <%= item["nombre_punta"] %> -
+                    Longitud: <%= item["longitud"] %>m
+                  <% else %>
+                    <%= idx + 1 %>. <%= item["nombre_item"] %> - Cantidad: <%= item["cantidad"] %>
+                  <% end %>
+                </span>
+                <%= link_to "🗑", remove_item_salidas_path(index: idx),
+                      data: { turbo_method: :delete },
+                      class: "btn btn-sm btn-outline-danger" %>
+              </li>
+            <% end %>
+          </ul>
+          <hr>
+        <% end %>
+
+        <div data-controller="salida-item-form">
+          <h3 class="h6">Agregar item a la salida</h3>
+          <div class="mb-3">
+            <label class="form-label">Selecciona un item existente:</label>
+            <select name="id_articulo" class="form-select"
+                    data-salida-item-form-target="articleSelect"
+                    data-action="change->salida-item-form#refresh">
+              <option value="">Selecciona...</option>
+              <% @articulos.each do |a| %>
+                <option value="<%= a.id_articulo %>"
+                        data-es-cable="<%= a.es_cable? %>"
+                        data-stock="<%= a.cantidad_en_stock.to_f %>">
+                  <%= a.nombre %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <div class="border rounded p-3 mb-3 bg-light d-none" data-salida-item-form-target="cableFields">
+            <h4 class="h6">Seleccionar punta/carrete/tramo</h4>
+            <label class="form-label">Selecciona la punta a retirar:</label>
+            <select name="id_punta" class="form-select"
+                    data-salida-item-form-target="puntaSelect"
+                    disabled>
+              <option value="">Selecciona...</option>
+              <% @available_puntas.each do |p| %>
+                <option value="<%= p.id_punta %>" data-articulo-id="<%= p.id_articulo %>">
+                  <%= p.nombre_punta %> (<%= p.longitud %>m)
+                </option>
+              <% end %>
+            </select>
+            <div class="alert alert-warning mt-2 mb-0 d-none" data-salida-item-form-target="noPuntasWarning">
+              No hay puntas disponibles (todas han sido utilizadas)
+            </div>
+          </div>
+
+          <div class="mb-3 d-none" data-salida-item-form-target="quantityFields">
+            <label class="form-label">
+              Cantidad a retirar (<span data-salida-item-form-target="stockHint">Máximo disponible: 0</span>)
+            </label>
+            <%= number_field_tag :cantidad, nil,
+                  class: "form-control",
+                  step: :any,
+                  min: 0,
+                  disabled: true,
+                  data: { salida_item_form_target: "cantidadInput" } %>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <%= submit_tag "Agregar item", class: "btn btn-outline-primary" %>
+          <%= submit_tag "Finalizar salida", formaction: finalize_salidas_path, class: "btn btn-primary" %>
+          <%= link_to "Cancelar", cancel_salidas_path, data: { turbo_method: :delete }, class: "btn btn-outline-danger" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% else %>
+  <div class="mb-4">
+    <%= button_to "Iniciar nueva salida", start_salidas_path, method: :post, class: "btn btn-primary btn-lg" %>
+  </div>
+<% end %>

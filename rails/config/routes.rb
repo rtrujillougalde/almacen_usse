@@ -12,8 +12,29 @@ Rails.application.routes.draw do
 
   resources :proyectos, only: %i[index create]
   resources :articulos, only: %i[edit update]
-  resources :entradas, only: %i[index create]
-  resources :salidas, only: %i[index create]
+
+  resources :entradas, only: %i[index create] do
+    collection do
+      post :start
+      post :add_item
+      delete :remove_item
+      delete :cancel
+      post :finalize
+      delete :dismiss_confirmation
+    end
+  end
+
+  resources :salidas, only: %i[index create] do
+    collection do
+      post :start
+      post :add_item
+      delete :remove_item
+      delete :cancel
+      post :finalize
+      delete :dismiss_confirmation
+    end
+  end
+
   resources :reportes, only: %i[index create]
 
   get "inventario", to: "inventario#index", as: :inventario

@@ -1,0 +1,38 @@
+<% if recent.any? %>
+  <% recent.each do |m| %>
+    <div class="mb-3 pb-3 border-bottom">
+      <div class="row small g-2 mb-2">
+        <div class="col-md-3 fw-semibold">Mov No. <%= m.id_movimiento %></div>
+        <div class="col-md-3">Fecha: <%= m.fecha_hora&.strftime("%d/%m/%Y %H:%M") || "N/A" %></div>
+        <div class="col-md-3">C.C: <%= m.proyecto ? proyecto_label(m.proyecto) : "Sin proyecto" %></div>
+        <div class="col-md-3">Responsable: <%= m.responsable.presence || "N/A" %></div>
+      </div>
+      <% if m.detalle_movimientos.any? %>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Artículo</th>
+                <th>Cantidad</th>
+                <th>Punta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% m.detalle_movimientos.each do |d| %>
+                <tr>
+                  <td><%= d.articulo&.nombre %></td>
+                  <td><%= d.cantidad %></td>
+                  <td><%= d.stock_punta&.nombre_punta || "—" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="small text-secondary mb-0">No hay items en este movimiento.</p>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <p class="text-secondary mb-0">No hay movimientos registrados.</p>
+<% end %>
