@@ -1,33 +1,89 @@
 <%= render "shared/page_header", title: "Reportes", subtitle: "PDF y Excel por centro de costos" %>
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0 mb-4">
   <div class="card-body p-4">
     <%= form_with url: reportes_path, method: :post do %>
-      <div class="row g-3">
+      <div class="row g-3 mb-3">
         <div class="col-md-4">
-          <label class="form-label">Centro de costos</label>
-          <%= select_tag :c_c, options_for_select(@centros), class: "form-select", include_blank: "Selecciona...", required: true %>
+          <label class="form-label">Selecciona el tipo de reporte</label>
+          <%= select_tag :kind,
+                options_for_select(
+                  [["Entradas", "entrada"], ["Salidas", "salida"], ["Comparativo", "comparativo"]],
+                  @kind || params[:kind] || "entrada"
+                ),
+                class: "form-select",
+                required: true %>
         </div>
-        <div class="col-md-4">
-          <label class="form-label">Desde</label>
-          <%= date_field_tag :date_from, params[:date_from], class: "form-control" %>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Hasta</label>
-          <%= date_field_tag :date_to, params[:date_to], class: "form-control" %>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Tipo</label>
-          <%= select_tag :kind, options_for_select([["Entradas", "entrada"], ["Salidas", "salida"], ["Comparativo", "comparativo"]], params[:kind]), class: "form-select" %>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Formato</label>
-          <%= select_tag :file_format, options_for_select([["PDF", "pdf"], ["Excel", "xlsx"]], params[:file_format] || "pdf"), class: "form-select" %>
+        <div class="col-md-8">
+          <label class="form-label">Centro de Costos (CC)</label>
+          <%= select_tag :c_c,
+                options_for_select(@centros, @cc || params[:c_c]),
+                class: "form-select",
+                include_blank: "Selecciona un CC...",
+                required: true %>
         </div>
       </div>
-      <div class="mt-4">
-        <%= submit_tag "Descargar", class: "btn btn-primary" %>
+
+      <% if @centros.blank? %>
+        <div class="alert alert-warning">
+          No hay proyectos/centros de costo registrados. Crea un proyecto antes de generar reportes.
+        </div>
+      <% end %>
+
+      <div data-controller="report-filters" class="mb-3">
+        <div class="form-check mb-3">
+          <%= check_box_tag :filter_dates, "1", @filter_dates || params[:filter_dates].present?,
+                class: "form-check-input",
+                id: "filter_dates",
+                data: {
+                  report_filters_target: "checkbox",
+                  action: "change->report-filters#refresh"
+                } %>
+          <label class="form-check-label" for="filter_dates">Filtrar por rango de fechas</label>
+        </div>
+
+        <div class="row g-3 <%= "d-none" unless @filter_dates || params[:filter_dates].present? %>"
+             data-report-filters-target="fields">
+          <div class="col-md-6">
+            <label class="form-label">Fecha de inicio</label>
+            <%= date_field_tag :date_from,
+                  @date_from.presence || params[:date_from].presence || Date.new(Date.current.year, 1, 1),
+                  class: "form-control",
+                  disabled: !(@filter_dates || params[:filter_dates].present?) %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Fecha de fin</label>
+            <%= date_field_tag :date_to,
+                  @date_to.presence || params[:date_to].presence || Date.current,
+                  class: "form-control",
+                  disabled: !(@filter_dates || params[:filter_dates].present?) %>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <% kind = @kind || params[:kind] || "entrada" %>
+        <% if kind == "comparativo" %>
+          <div class="alert alert-info mb-0">
+            Este reporte compara los materiales y herramientas que entraron
+            contra los que salieron para un mismo centro de costos,
+            mostrando el porcentaje de uso real.
+          </div>
+        <% else %>
+          <div class="alert alert-info mb-0">
+            Este reporte extrae las <%= kind %>s registradas de la base de datos,
+            mostrando fecha, centro de costos, materiales, cantidades y precios.
+          </div>
+        <% end %>
+      </div>
+
+      <div class="mt-2">
+        <%= submit_tag generate_button_label(kind), class: "btn btn-primary", disabled: @centros.blank? %>
       </div>
     <% end %>
   </div>
 </div>
+
+<% if @preview_rows.present? %>
+  <%= render "results_panel" %>
+<% end %>

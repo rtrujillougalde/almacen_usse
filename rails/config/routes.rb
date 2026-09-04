@@ -35,7 +35,11 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :reportes, only: %i[index create]
+  resources :reportes, only: %i[index create] do
+    collection do
+      get :download
+    end
+  end
 
   get "inventario", to: "inventario#index", as: :inventario
 

@@ -13,19 +13,23 @@ module Reportes
           "articulos.precio_unitario",
           "articulos.unidad_medida"
         )
-        .order("movimientos.fecha_hora")
+        .order("movimientos.fecha_hora DESC")
 
-      scope = scope.where("DATE(movimientos.fecha_hora) >= ?", date_from) if date_from.present?
-      scope = scope.where("DATE(movimientos.fecha_hora) <= ?", date_to) if date_to.present?
+      # Python only applies the date window when both bounds are present.
+      if date_from.present? && date_to.present?
+        scope = scope.where("DATE(movimientos.fecha_hora) >= ?", date_from)
+                     .where("DATE(movimientos.fecha_hora) <= ?", date_to)
+      end
+
       scope
     end
 
     def self.comparativo_rows(cc:, date_from: nil, date_to: nil)
       entradas = movement_totals(cc, "entrada", date_from, date_to)
       salidas = movement_totals(cc, "salida", date_from, date_to)
-      names = (entradas.keys + salidas.keys).uniq
+      names = (entradas.keys + salidas.keys).uniq.sort
 
-      names.map do |nombre|
+      rows = names.map do |nombre|
         art = Articulo.find_by(nombre: nombre)
         total_e = entradas[nombre].to_f
         total_s = salidas[nombre].to_f
@@ -42,7 +46,7 @@ module Reportes
           c_c: cc,
           material: nombre,
           tipo: tipo,
-          unidad_medida: art&.unidad_medida,
+          unidad_medida: art&.unidad_medida || "N/A",
           precio_unitario: precio,
           total_entrada: total_e,
           total_salida: total_s,
@@ -50,6 +54,8 @@ module Reportes
           costo_material_usado: costo
         }
       end
+
+      rows.sort_by { |r| [ r[:c_c].to_s, r[:material].to_s ] }
     end
 
     def self.movement_totals(cc, tipo, date_from, date_to)
