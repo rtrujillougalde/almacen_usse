@@ -31,31 +31,18 @@ module Reportes
           next
         end
 
-        data = [ [ "Fecha/Hora", "Material", "Cantidad", "Unidad", "Precio Unit.", "Total" ] ]
-        total_general = 0.0
+        data = [ [ "Fecha/Hora", "Material", "Cantidad", "Unidad" ] ]
 
         rows.each do |r|
-          precio = r.precio_unitario.to_f
-          total = r.cantidad.to_f * precio
-          total_general += total
           data << [
             r.fecha_hora&.strftime("%Y-%m-%d %H:%M").to_s,
             r.material.to_s,
             format_qty(r.cantidad),
-            r.unidad_medida.to_s,
-            money(precio),
-            money(total)
+            r.unidad_medida.to_s
           ]
         end
 
         draw_data_table(pdf, data, S::COL_WIDTHS)
-        pdf.move_down 22
-        pdf.fill_color S::ENTRADAS_TOTAL_COLOR
-        pdf.text "<b>TOTAL GENERAL:</b> #{money_with_commas(total_general)}",
-                 size: S::ENTRADAS_TOTAL_FONT_SIZE,
-                 align: :right,
-                 inline_format: true
-        pdf.fill_color "000000"
       end
     end
 

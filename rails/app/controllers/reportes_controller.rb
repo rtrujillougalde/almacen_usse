@@ -159,16 +159,12 @@ class ReportesController < ApplicationController
       end
     else
       @rows.map do |r|
-        precio = r.precio_unitario.to_f
-        total = r.cantidad.to_f * precio
         {
           "Fecha/Hora" => r.fecha_hora,
           "C.C" => r.c_c,
           "Material" => r.material,
           "Cantidad" => r.cantidad,
-          "Unidad" => r.unidad_medida,
-          "Precio Unit." => format("$%.2f", precio),
-          "Total" => format("$%.2f", total)
+          "Unidad" => r.unidad_medida
         }
       end
     end

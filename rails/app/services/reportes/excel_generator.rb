@@ -21,26 +21,19 @@ module Reportes
       styles = build_styles(workbook)
 
       workbook.add_worksheet(name: sheet_name) do |sheet|
-        headers = [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad", "Precio Unit.", "Total" ]
+        headers = [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad" ]
         sheet.add_row headers, style: styles[:header]
 
         rows.each do |r|
-          precio = r.precio_unitario.to_f
-          total = r.cantidad.to_f * precio
           sheet.add_row(
             [
               r.fecha_hora&.strftime("%Y-%m-%d %H:%M:%S").to_s,
               r.c_c,
               r.material.to_s,
               r.cantidad.to_f,
-              r.unidad_medida.to_s,
-              precio,
-              total
+              r.unidad_medida.to_s
             ],
-            style: [
-              styles[:body], styles[:body], styles[:body], styles[:body],
-              styles[:body], styles[:currency], styles[:currency]
-            ]
+            style: Array.new(5, styles[:body])
           )
         end
 

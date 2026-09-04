@@ -34,7 +34,8 @@ RSpec.describe "Reportes generate flow", type: :request do
       expect(response.body).to include("Descargar PDF")
       expect(response.body).to include("Descargar Excel")
       expect(response.body).to include("Reporte Item")
-      expect(response.body).to include("$10.00") # total 2 * 5
+      expect(response.body).not_to include("Precio Unit.")
+      expect(response.body).not_to include(">Total<")
       expect(response.body).to include("Descargar PDF")
       expect(response.body).to include("Descargar Excel")
       expect(response.body).to include("/reportes/download?")
@@ -201,8 +202,9 @@ RSpec.describe "Reportes downloads", type: :request do
       text = pdf_text(response.body)
       expect(text).to include("Reporte de Entradas de Almacén")
       expect(text).to include("Reporte Item")
-      expect(text).to include("TOTAL GENERAL:")
-      expect(text).to include("$10.00")
+      expect(text).not_to include("Precio Unit.")
+      expect(text).not_to include("TOTAL GENERAL")
+      expect(text).not_to match(/(^|\s)Total(\s|$)/)
     end
 
     it "returns a real PDF for salidas" do
@@ -243,11 +245,12 @@ RSpec.describe "Reportes downloads", type: :request do
       expect(xlsx_sheet_names(response.body)).to eq([ "Entradas" ])
       rows = xlsx_rows(response.body)
       expect(rows.first).to eq(
-        [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad", "Precio Unit.", "Total" ]
+        [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad" ]
       )
+      expect(rows.first).not_to include("Precio Unit.", "Total")
       expect(rows[1][2]).to eq("Reporte Item")
       expect(rows[1][3].to_f).to eq(2.0)
-      expect(rows[1][6].to_f).to eq(10.0)
+      expect(rows[1].length).to eq(5)
     end
 
     it "returns a real XLSX for comparativo with expected columns" do

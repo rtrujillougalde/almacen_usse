@@ -12,7 +12,7 @@ RSpec.describe Reportes::PdfGenerator do
   end
 
   describe ".movement" do
-    it "creates a valid PDF with Python-like title, headers, row data, and total" do
+    it "creates a valid PDF with title and row data without Precio Unit. or Total" do
       add_movement(tipo: :entrada, cantidad: 3)
       rows = Reportes::Query.movement_rows(cc: 111, movement_type: "entrada").to_a
 
@@ -32,17 +32,15 @@ RSpec.describe Reportes::PdfGenerator do
       expect(text).to include("Material")
       expect(text).to include("Cantidad")
       expect(text).to include("Unidad")
-      expect(text).to include("Precio Unit.")
-      expect(text).to include("Total")
       expect(text).to include("Cable X")
       expect(text).to include("3")
       expect(text).to include("m")
-      expect(text).to include("$10.00")
-      expect(text).to include("$30.00")
-      expect(text).to include("TOTAL GENERAL:")
+      expect(text).not_to include("Precio Unit.")
+      expect(text).not_to include("TOTAL GENERAL")
+      expect(text).not_to match(/(^|\s)Total(\s|$)/)
     end
 
-    it "creates a salidas PDF with the matching title" do
+    it "creates a salidas PDF with the matching title and without price columns" do
       add_movement(tipo: :salida, cantidad: 2)
       rows = Reportes::Query.movement_rows(cc: 111, movement_type: "salida").to_a
 
@@ -52,7 +50,8 @@ RSpec.describe Reportes::PdfGenerator do
       expect(pdf).to start_with("%PDF")
       expect(text).to include("Reporte de Salidas de Almacén")
       expect(text).to include("Cable X")
-      expect(text).to include("TOTAL GENERAL:")
+      expect(text).not_to include("Precio Unit.")
+      expect(text).not_to include("TOTAL GENERAL")
     end
   end
 
@@ -99,7 +98,7 @@ RSpec.describe Reportes::ExcelGenerator do
   end
 
   describe ".movement" do
-    it "creates an XLSX with Entradas sheet, Python headers, and calculated totals" do
+    it "creates an XLSX with Entradas sheet without Precio Unit. or Total" do
       mov = create(:movimiento, proyecto: proyecto, tipo: :entrada)
       create(:detalle_movimiento, movimiento: mov, articulo: articulo, cantidad: 2)
       rows = Reportes::Query.movement_rows(cc: 222, movement_type: "entrada").to_a
@@ -112,20 +111,20 @@ RSpec.describe Reportes::ExcelGenerator do
 
       table = xlsx_rows(xlsx)
       expect(table.first).to eq(
-        [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad", "Precio Unit.", "Total" ]
+        [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad" ]
       )
+      expect(table.first).not_to include("Precio Unit.", "Total")
 
       data_row = table[1]
       expect(data_row[1]).to eq("222")
       expect(data_row[2]).to eq("Pintura Azul")
       expect(data_row[3].to_f).to eq(2.0)
       expect(data_row[4]).to eq("lt")
-      expect(data_row[5].to_f).to eq(4.5)
-      expect(data_row[6].to_f).to eq(9.0)
+      expect(data_row.length).to eq(5)
       expect(table.length).to eq(2)
     end
 
-    it "creates a Salidas sheet for salida reports" do
+    it "creates a Salidas sheet for salida reports without price columns" do
       mov = create(:movimiento, proyecto: proyecto, tipo: :salida)
       create(:detalle_movimiento, movimiento: mov, articulo: articulo, cantidad: 1)
       rows = Reportes::Query.movement_rows(cc: 222, movement_type: "salida").to_a
@@ -133,7 +132,9 @@ RSpec.describe Reportes::ExcelGenerator do
       xlsx = described_class.movement(movement_type: "salida", rows: rows)
 
       expect(xlsx_sheet_names(xlsx)).to eq([ "Salidas" ])
-      expect(xlsx_rows(xlsx).first).to include("Material", "Cantidad", "Total")
+      headers = xlsx_rows(xlsx).first
+      expect(headers).to include("Material", "Cantidad", "Unidad")
+      expect(headers).not_to include("Precio Unit.", "Total")
     end
   end
 

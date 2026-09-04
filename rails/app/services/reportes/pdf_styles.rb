@@ -31,12 +31,10 @@ module Reportes
     LOGO_LATER_PAGE_HEIGHT = 0.5 * INCH
 
     COL_WIDTHS = [
-      1.15 * INCH, # Fecha/Hora
-      2.1 * INCH,  # Material
-      0.75 * INCH, # Cantidad
-      0.75 * INCH, # Unidad
-      0.95 * INCH, # Precio Unit.
-      0.95 * INCH  # Total
+      1.4 * INCH,  # Fecha/Hora
+      2.8 * INCH,  # Material
+      1.0 * INCH,  # Cantidad
+      1.0 * INCH   # Unidad
     ].freeze
 
     COL_WIDTHS_COMP = [
