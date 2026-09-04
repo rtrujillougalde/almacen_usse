@@ -1,4 +1,4 @@
-<aside class="app-sidebar text-white p-3">
+<aside class="app-sidebar text-white p-3 d-flex flex-column">
   <div class="d-none d-md-flex align-items-center gap-2 mb-4 px-1">
     <%= image_tag "logo_usse_2.jpg", alt: "USSE", class: "app-logo rounded bg-white p-1" %>
     <div>
@@ -7,18 +7,41 @@
     </div>
   </div>
 
-  <nav class="nav nav-pills flex-column gap-1" aria-label="Secciones">
-    <%= link_to "Inventario", inventario_path,
-          class: "nav-link #{'active' if controller_name == 'inventario'}" %>
-    <%= link_to "Entradas", entradas_path,
-          class: "nav-link #{'active' if controller_name == 'entradas'}" %>
-    <%= link_to "Salidas", salidas_path,
-          class: "nav-link #{'active' if controller_name == 'salidas'}" %>
-    <%= link_to "Proyectos", proyectos_path,
-          class: "nav-link #{'active' if controller_name == 'proyectos'}" %>
-    <%= link_to "Reportes", reportes_path,
-          class: "nav-link #{'active' if controller_name == 'reportes'}" %>
-    <%= link_to "Proveedores", proveedores_path,
-          class: "nav-link #{'active' if controller_name == 'proveedores'}" %>
+  <nav class="nav nav-pills flex-column gap-1 flex-grow-1" aria-label="Secciones">
+    <% if nav_pages_for_current_user.include?("inventario") %>
+      <%= link_to "Inventario", inventario_path,
+            class: "nav-link #{'active' if controller_name == 'inventario'}" %>
+    <% end %>
+    <% if nav_pages_for_current_user.include?("entradas") %>
+      <%= link_to "Entradas", entradas_path,
+            class: "nav-link #{'active' if controller_name == 'entradas'}" %>
+    <% end %>
+    <% if nav_pages_for_current_user.include?("salidas") %>
+      <%= link_to "Salidas", salidas_path,
+            class: "nav-link #{'active' if controller_name == 'salidas'}" %>
+    <% end %>
+    <% if nav_pages_for_current_user.include?("proyectos") %>
+      <%= link_to "Proyectos", proyectos_path,
+            class: "nav-link #{'active' if controller_name == 'proyectos'}" %>
+    <% end %>
+    <% if nav_pages_for_current_user.include?("reportes") %>
+      <%= link_to "Reportes", reportes_path,
+            class: "nav-link #{'active' if controller_name == 'reportes'}" %>
+    <% end %>
+    <% if nav_pages_for_current_user.include?("proveedores") %>
+      <%= link_to "Proveedores", proveedores_path,
+            class: "nav-link #{'active' if controller_name == 'proveedores'}" %>
+    <% end %>
   </nav>
+
+  <% if user_signed_in? %>
+    <div class="mt-4 pt-3 border-top border-light border-opacity-25">
+      <div class="small text-white-50 mb-2 px-1">
+        <%= current_user.username %>
+        <span class="badge text-bg-light text-dark"><%= current_user.role %></span>
+      </div>
+      <%= button_to "Cerrar sesión", destroy_user_session_path, method: :delete,
+            class: "btn btn-outline-light btn-sm w-100" %>
+    </div>
+  <% end %>
 </aside>

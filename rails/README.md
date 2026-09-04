@@ -18,3 +18,9 @@ bin/dev
 - Shared chrome: `shared/sidebar`, `shared/page_header`, `shared/coming_soon`
 
 Tailwind was removed in favor of vendored Bootstrap 5.3 under `app/assets/stylesheets/bootstrap.min.css` and `vendor/javascript/bootstrap.bundle.min.js`.
+
+## Auth (Stage 3)
+
+- Devise login with **username** (no public registration).
+- Roles: `admin`, `operador`, `consulta` (same page access as the Streamlit app).
+- Seed users (`bin/rails db:seed`): `admin` / `operador` / `consulta` — password `password`.
