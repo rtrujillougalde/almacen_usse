@@ -48,7 +48,7 @@
               <td><%= a.cantidad_en_stock %></td>
               <td><%= a.stock_minimo %></td>
               <td><%= a.unidad_medida %></td>
-              <td><%= a.proveedor&.nombre %></td>
+              <td><%= a.proveedor_record&.nombre %></td>
               <td class="text-end">
                 <%= link_to "Editar", edit_articulo_path(a), class: "btn btn-sm btn-outline-secondary" %>
               </td>

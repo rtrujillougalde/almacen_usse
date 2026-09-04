@@ -31,6 +31,23 @@ RSpec.describe "Inventario", type: :request do
   describe "PATCH /articulos/:id" do
     let!(:articulo) { create(:articulo, cantidad_en_stock: 5, stock_minimo: 1) }
 
+    it "updates proveedor by id without AssociationTypeMismatch" do
+      other = create(:proveedor, nombre: "Otro Prov")
+      patch articulo_path(articulo), params: {
+        articulo: {
+          nombre: articulo.nombre,
+          tipo: articulo.tipo,
+          stock_minimo: articulo.stock_minimo,
+          unidad_medida: articulo.unidad_medida,
+          cantidad_en_stock: articulo.cantidad_en_stock,
+          proveedor: other.id_proveedor
+        }
+      }
+      expect(response).to redirect_to(inventario_path)
+      expect(articulo.reload.proveedor).to eq(other.id_proveedor)
+      expect(articulo.proveedor_record).to eq(other)
+    end
+
     it "rejects stock change without admin password" do
       create(:user, :admin, username: "admin", email: "admin@usse.local", password: "password")
       patch articulo_path(articulo), params: {

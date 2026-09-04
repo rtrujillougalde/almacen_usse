@@ -8,7 +8,7 @@ FactoryBot.define do
     precio_unitario { 100 }
     categoria { "general" }
     es_cable { false }
-    association :proveedor, factory: :proveedor
+    association :proveedor_record, factory: :proveedor
 
     trait :cable do
       es_cable { true }

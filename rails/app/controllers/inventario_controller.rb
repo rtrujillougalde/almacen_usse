@@ -2,7 +2,7 @@ class InventarioController < ApplicationController
   before_action -> { authorize_page!("inventario") }
 
   def index
-    scope = Articulo.includes(:proveedor).order(:nombre)
+    scope = Articulo.includes(:proveedor_record).order(:nombre)
     if params[:categoria].present? && params[:categoria] != "Todas"
       scope = scope.where(categoria: params[:categoria])
     end

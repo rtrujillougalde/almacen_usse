@@ -12,7 +12,9 @@ class Articulo < ApplicationRecord
     regletas seguridad soportes tablaroca tableros tierras tornilleria zapatas
   ].freeze
 
-  belongs_to :proveedor,
+  # Association name must differ from the FK column `proveedor` (integer),
+  # otherwise assign_attributes(proveedor: "1") raises AssociationTypeMismatch.
+  belongs_to :proveedor_record,
              class_name: "Proveedor",
              foreign_key: :proveedor,
              primary_key: :id_proveedor,
