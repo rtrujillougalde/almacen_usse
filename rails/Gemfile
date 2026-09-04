@@ -64,3 +64,6 @@ gem "devise", "~> 5.0"
 gem "prawn", "~> 2.4"
 gem "prawn-table", "~> 0.2.2"
 gem "caxlsx", "~> 4.5"
+
+gem "rspec-rails", "~> 8.0", groups: [:development, :test]
+gem "factory_bot_rails", "~> 6.5", groups: [:development, :test]
