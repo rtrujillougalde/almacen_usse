@@ -1,3 +1,79 @@
-<%= render "shared/coming_soon",
-      title: "Salidas",
-      description: "Registro de salidas asociadas a proyectos" %>
+<%= render "shared/page_header", title: "Salidas", subtitle: "Registro de salidas a proyectos" %>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Nueva salida</h2>
+        <%= form_with url: salidas_path, method: :post do %>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Proyecto (C.C.)</label>
+              <%= select_tag :id_proyecto,
+                    options_from_collection_for_select(@proyectos, :id_proyecto, :nombre_obra_with_cc),
+                    class: "form-select", required: true, include_blank: "Selecciona..." %>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Responsable</label>
+              <%= text_field_tag :responsable, params[:responsable], class: "form-control", required: true %>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Observaciones</label>
+            <%= text_area_tag :observaciones, params[:observaciones], class: "form-control", rows: 2 %>
+          </div>
+
+          <h3 class="h6">Líneas (hasta 5)</h3>
+          <% 5.times do |i| %>
+            <div class="border rounded p-3 mb-3 bg-light">
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label">Artículo</label>
+                  <%= select_tag "items[#{i}][id_articulo]",
+                        options_from_collection_for_select(@articulos, :id_articulo, :nombre),
+                        class: "form-select", include_blank: "—" %>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Cantidad</label>
+                  <%= number_field_tag "items[#{i}][cantidad]", nil, class: "form-control", step: :any, min: 0 %>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Punta (si cable)</label>
+                  <%= select_tag "items[#{i}][id_punta]",
+                        options_for_select(
+                          @puntas_by_articulo.values.flatten.map { |p| ["#{p.articulo.nombre}: #{p.nombre_punta} (#{p.longitud})", p.id_punta] }
+                        ),
+                        class: "form-select", include_blank: "—" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <%= submit_tag "Registrar salida", class: "btn btn-primary", data: { turbo_confirm: "¿Confirmar salida?" } %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Salidas recientes</h2>
+        <% @recent.each do |m| %>
+          <div class="mb-3 border-bottom pb-2">
+            <div class="fw-semibold">#<%= m.id_movimiento %> · <%= m.fecha_hora&.strftime("%Y-%m-%d %H:%M") %></div>
+            <div class="small text-secondary"><%= m.proyecto && proyecto_label(m.proyecto) %> · <%= m.responsable %></div>
+            <ul class="small mb-0">
+              <% m.detalle_movimientos.each do |d| %>
+                <li><%= d.articulo&.nombre %>: <%= d.cantidad %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+        <% if @recent.empty? %>
+          <p class="text-secondary mb-0">Sin salidas aún.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
