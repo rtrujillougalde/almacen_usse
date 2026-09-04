@@ -24,7 +24,14 @@ test:
   database: almacen_usse_rails_test
 
 # Prefer DATABASE_URL in production (e.g. Railway MySQL plugin).
-# Rails merges DATABASE_URL over these settings when the env var is set.
+# Rails merges DATABASE_URL over the primary settings when the env var is set.
+# Sibling Solid DBs reuse that host/user/password unless CACHE/QUEUE/CABLE_DATABASE_URL is set.
+<%
+  require Rails.root.join("lib/shared_production/database_url").to_s
+  cache_database_url = SharedProduction::DatabaseUrl.sibling(ENV["DATABASE_URL"], "cache", override: ENV["CACHE_DATABASE_URL"])
+  queue_database_url = SharedProduction::DatabaseUrl.sibling(ENV["DATABASE_URL"], "queue", override: ENV["QUEUE_DATABASE_URL"])
+  cable_database_url = SharedProduction::DatabaseUrl.sibling(ENV["DATABASE_URL"], "cable", override: ENV["CABLE_DATABASE_URL"])
+%>
 production:
   primary: &primary_production
     <<: *default
@@ -35,11 +42,20 @@ production:
     <<: *primary_production
     database: almacen_usse_rails_production_cache
     migrations_paths: db/cache_migrate
+    <% if cache_database_url %>
+    url: <%= cache_database_url %>
+    <% end %>
   queue:
     <<: *primary_production
     database: almacen_usse_rails_production_queue
     migrations_paths: db/queue_migrate
+    <% if queue_database_url %>
+    url: <%= queue_database_url %>
+    <% end %>
   cable:
     <<: *primary_production
     database: almacen_usse_rails_production_cable
     migrations_paths: db/cable_migrate
+    <% if cable_database_url %>
+    url: <%= cable_database_url %>
+    <% end %>

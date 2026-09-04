@@ -1,8 +1,13 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
+# If running the rails server, prepare the shared live MySQL safely.
+# Never run db:prepare here — that would recreate inventory tables.
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
+  if [ -z "${DATABASE_URL}" ]; then
+    echo "DATABASE_URL is missing; skipping shared production prepare."
+  else
+    ./bin/rails shared_production:prepare
+  fi
 fi
 
 exec "${@}"
