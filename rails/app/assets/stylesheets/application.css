@@ -41,6 +41,34 @@ body {
   min-width: 0;
 }
 
+.badge-usse {
+  background-color: var(--usse-brand);
+  color: #fff;
+}
+
+.movement-cc {
+  color: var(--usse-brand);
+  letter-spacing: 0.01em;
+}
+
+.movement-card .table {
+  --bs-table-bg: transparent;
+  font-size: 0.8rem;
+}
+
+.movement-card .table > :not(caption) > * > * {
+  padding: 0.2rem 0.5rem;
+}
+
+.movement-card .table thead th {
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+}
+
+.movement-card .table td:first-child {
+  max-width: 11rem;
+}
+
 @media (max-width: 767.98px) {
   .app-sidebar {
     width: 100%;

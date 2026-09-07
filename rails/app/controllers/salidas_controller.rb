@@ -118,7 +118,7 @@ class SalidasController < ApplicationController
     @recent = Movimiento.where(tipo: :salida)
                         .includes(:proyecto, detalle_movimientos: [ :articulo, :stock_punta ])
                         .order(fecha_hora: :desc)
-                        .limit(5)
+                        .limit(6)
   end
 
   def build_salida_item

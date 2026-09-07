@@ -8,9 +8,11 @@ class User < ApplicationRecord
     consulta: "consulta"
   }, validate: true
 
+  STAFF_PAGES = %w[inventario entradas compras salidas proyectos reportes proveedores].freeze
+
   ROLE_PAGES = {
-    "admin" => %w[inventario entradas compras salidas proyectos reportes proveedores],
-    "operador" => %w[inventario entradas compras salidas],
+    "admin" => STAFF_PAGES,
+    "operador" => STAFF_PAGES,
     "consulta" => %w[inventario reportes]
   }.freeze
 

@@ -22,7 +22,7 @@ Tailwind was removed in favor of vendored Bootstrap 5.3 under `app/assets/styles
 ## Auth (Stage 3)
 
 - Devise login with **username** (no public registration).
-- Roles: `admin`, `operador`, `consulta` (same page access as the Streamlit app).
+- Roles: `admin` and `operador` share all warehouse pages; `consulta` is inventario + reportes.
 - Seed users (`bin/rails db:seed`): `admin` / `operador` / `consulta` — password `password`.
 
 ## Domain schema (Stage 4)

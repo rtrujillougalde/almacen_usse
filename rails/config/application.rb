@@ -21,7 +21,9 @@ module AlmacenUsse
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    # Mexico City (hora del centro) for Time.current, Date.current, and display.
+    # Active Record still persists the UTC instant and converts on read.
+    config.time_zone = "America/Mexico_City"
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end
