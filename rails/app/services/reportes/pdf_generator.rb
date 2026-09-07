@@ -167,7 +167,7 @@ module Reportes
 
     def movement_row_values(row, compra)
       values = [
-        row.fecha_hora&.strftime("%Y-%m-%d %H:%M").to_s,
+        row.fecha_hora&.in_time_zone&.strftime("%Y-%m-%d %H:%M").to_s,
         row.material.to_s,
         format_qty(row.cantidad),
         row.unidad_medida.to_s

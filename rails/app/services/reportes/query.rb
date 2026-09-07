@@ -19,13 +19,7 @@ module Reportes
         )
         .order("movimientos.fecha_hora DESC")
 
-      # Python only applies the date window when both bounds are present.
-      if date_from.present? && date_to.present?
-        scope = scope.where("DATE(movimientos.fecha_hora) >= ?", date_from)
-                     .where("DATE(movimientos.fecha_hora) <= ?", date_to)
-      end
-
-      scope
+      apply_date_window(scope, date_from, date_to)
     end
 
     def self.utilizado_groups(cc:, date_from: nil, date_to: nil)
@@ -112,5 +106,14 @@ module Reportes
       lookup[row.material].presence || "MXN"
     end
     private_class_method :resolved_moneda
+
+    def self.apply_date_window(scope, date_from, date_to)
+      return scope unless date_from.present? && date_to.present?
+
+      from = Time.zone.parse(date_from.to_s).beginning_of_day
+      to = Time.zone.parse(date_to.to_s).end_of_day
+      scope.where(movimientos: { fecha_hora: from..to })
+    end
+    private_class_method :apply_date_window
   end
 end

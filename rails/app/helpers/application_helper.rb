@@ -9,6 +9,10 @@ module ApplicationHelper
     "#{proyecto.c_c} | #{proyecto.nombre_obra}"
   end
 
+  def format_datetime(time, format: "%d/%m/%Y %H:%M")
+    time&.in_time_zone&.strftime(format) || "N/A"
+  end
+
   def generate_button_label(kind)
     case kind.to_s
     when "salida" then "Generar Reporte de Salidas"

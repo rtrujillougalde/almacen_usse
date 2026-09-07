@@ -100,6 +100,27 @@ RSpec.describe Reportes::Query do
       expect(rows.map(&:material)).to include("Pintura")
     end
 
+    it "filters by Mexico City calendar dates, not the UTC date" do
+      articulo = create(:articulo, nombre: "Cemento nocturno")
+      # 15 Mar 2026 23:30 in Mexico City is 16 Mar 05:30 UTC.
+      add_movement(
+        tipo: :entrada,
+        articulo: articulo,
+        cantidad: 2,
+        fecha_hora: Time.find_zone!("Mexico City").local(2026, 3, 15, 23, 30)
+      )
+
+      included = described_class.movement_rows(
+        cc: 3210, movement_type: "entrada", date_from: "2026-03-15", date_to: "2026-03-15"
+      )
+      excluded = described_class.movement_rows(
+        cc: 3210, movement_type: "entrada", date_from: "2026-03-16", date_to: "2026-03-16"
+      )
+
+      expect(included.map(&:material)).to include("Cemento nocturno")
+      expect(excluded.map(&:material)).not_to include("Cemento nocturno")
+    end
+
     it "returns compra rows with moneda and proveedor" do
       proveedor = create(:proveedor, nombre: "Aceros Norte")
       articulo = create(:articulo, nombre: "Varilla")

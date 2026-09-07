@@ -177,7 +177,7 @@ class ReportesController < ApplicationController
   def build_preview_rows
     @rows.map do |r|
       preview = {
-        "Fecha/Hora" => r.fecha_hora,
+        "Fecha/Hora" => r.fecha_hora&.in_time_zone&.strftime("%Y-%m-%d %H:%M:%S"),
         "C.C" => r.c_c,
         "Material" => r.material,
         "Cantidad" => r.cantidad,

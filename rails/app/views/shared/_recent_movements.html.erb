@@ -3,13 +3,13 @@
     <div class="mb-3 pb-3 border-bottom">
       <div class="row small g-2 mb-2">
         <div class="col-md-3 fw-semibold">Mov No. <%= m.id_movimiento %></div>
-        <div class="col-md-3">Fecha: <%= m.fecha_hora&.strftime("%d/%m/%Y %H:%M") || "N/A" %></div>
+        <div class="col-md-3">Fecha: <%= format_datetime(m.fecha_hora) %></div>
         <div class="col-md-3">C.C: <%= m.proyecto ? proyecto_label(m.proyecto) : "Sin proyecto" %></div>
         <div class="col-md-3">Responsable: <%= m.responsable.presence || "N/A" %></div>
       </div>
       <% if m.detalle_movimientos.any? %>
         <div class="table-responsive">
-          <table class="table table-sm table-bordered mb-0">
+          <table class="table table-striped table-hover table-sm mb-0 align-middle">
             <thead class="table-light">
               <tr>
                 <th>Artículo</th>
