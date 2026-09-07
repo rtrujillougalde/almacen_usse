@@ -4,6 +4,7 @@ class Proveedor < ApplicationRecord
   self.record_timestamps = false
 
   has_many :articulos, foreign_key: :proveedor, inverse_of: :proveedor_record, dependent: :restrict_with_exception
+  has_many :movimientos, foreign_key: :id_proveedor, inverse_of: :proveedor, dependent: :restrict_with_exception
 
   validates :nombre, presence: true
 

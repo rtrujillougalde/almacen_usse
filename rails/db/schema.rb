@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_191937) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_07_102400) do
   create_table "articulos", primary_key: "id_articulo", id: :integer, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.column "almacen", "enum('oficina','uno','dos','tres','dormitorios')"
     t.float "cantidad_en_stock"
@@ -39,10 +39,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_191937) do
 
   create_table "movimientos", primary_key: "id_movimiento", id: :integer, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.datetime "fecha_hora"
+    t.integer "id_proveedor"
     t.integer "id_proyecto"
+    t.string "moneda", limit: 3
     t.text "observaciones"
     t.string "responsable", limit: 45
-    t.column "tipo", "enum('entrada','salida')", null: false
+    t.column "tipo", "enum('entrada','salida','compra')", null: false
+    t.index ["id_proveedor"], name: "index_movimientos_on_id_proveedor"
     t.index ["id_proyecto"], name: "index_movimientos_on_id_proyecto"
   end
 
@@ -90,6 +93,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_191937) do
   add_foreign_key "detalle_movimientos", "articulos", column: "id_articulo", primary_key: "id_articulo"
   add_foreign_key "detalle_movimientos", "movimientos", column: "id_movimiento", primary_key: "id_movimiento"
   add_foreign_key "detalle_movimientos", "stock_puntas", column: "id_punta", primary_key: "id_punta"
+  add_foreign_key "movimientos", "proveedores", column: "id_proveedor", primary_key: "id_proveedor"
   add_foreign_key "movimientos", "proyectos", column: "id_proyecto", primary_key: "id_proyecto"
   add_foreign_key "stock_puntas", "articulos", column: "id_articulo", primary_key: "id_articulo"
 end
