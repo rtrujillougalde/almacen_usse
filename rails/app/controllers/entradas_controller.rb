@@ -115,9 +115,9 @@ class EntradasController < ApplicationController
     @articulos = Articulo.order(:nombre)
     @nombres_cables = @articulos.select(&:es_cable?).map(&:nombre)
     @recent = Movimiento.where(tipo: :entrada)
-                        .includes(:proyecto, detalle_movimientos: :articulo)
+                        .includes(:proyecto, detalle_movimientos: [ :articulo, :stock_punta ])
                         .order(fecha_hora: :desc)
-                        .limit(5)
+                        .limit(6)
   end
 
   def build_entrada_item

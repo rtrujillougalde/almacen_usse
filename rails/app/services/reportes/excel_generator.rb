@@ -28,7 +28,7 @@ module Reportes
 
         rows.each do |r|
           values = [
-            r.fecha_hora&.strftime("%Y-%m-%d %H:%M:%S").to_s,
+            r.fecha_hora&.in_time_zone&.strftime("%Y-%m-%d %H:%M:%S").to_s,
             r.c_c,
             r.material.to_s,
             r.cantidad.to_f,

@@ -36,6 +36,31 @@ RSpec.describe "Entradas", type: :request do
     expect(response).to redirect_to(entradas_path)
   end
 
+  it "renders recent entradas as cards with a bold cost center" do
+    sign_in_as(:operador)
+    articulo = create(:articulo, nombre: "Cable Reciente")
+    movimiento = create(
+      :movimiento,
+      tipo: :entrada,
+      proyecto: proyecto,
+      responsable: "Ana",
+      fecha_hora: Time.zone.parse("2026-09-07 15:42")
+    )
+    create(:detalle_movimiento, movimiento: movimiento, articulo: articulo, cantidad: 3)
+
+    get entradas_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("movement-card")
+    expect(response.body).to include("6 últimos")
+    expect(response.body).to include("col-xl-4")
+    expect(response.body).to include("C.C. #{proyecto.c_c}")
+    expect(response.body).to include("badge-usse")
+    expect(response.body).not_to include("##{movimiento.id_movimiento}")
+    expect(response.body).to include(proyecto.nombre_obra)
+    expect(response.body).to include("Cable Reciente")
+  end
+
   it "forbids consulta from entradas" do
     sign_in_as(:consulta)
     get entradas_path

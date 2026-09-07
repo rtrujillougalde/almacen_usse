@@ -1,44 +1,76 @@
 <% if recent.any? %>
-  <% recent.each do |m| %>
-    <div class="mb-3 pb-3 border-bottom">
-      <div class="row small g-2 mb-2">
-        <div class="col-md-3 fw-semibold">Mov No. <%= m.id_movimiento %></div>
-        <div class="col-md-3">Fecha: <%= m.fecha_hora&.strftime("%d/%m/%Y %H:%M") || "N/A" %></div>
-        <div class="col-md-3">C.C: <%= m.proyecto ? proyecto_label(m.proyecto) : "Sin proyecto" %></div>
-        <div class="col-md-3">Responsable: <%= m.responsable.presence || "N/A" %></div>
-      </div>
-      <% if m.detalle_movimientos.any? %>
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Artículo</th>
-                <th>Cantidad</th>
-                <% if local_assigns[:show_precio] %>
-                  <th>Precio unitario</th>
-                <% end %>
-                <th>Punta</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% m.detalle_movimientos.each do |d| %>
-                <tr>
-                  <td><%= d.articulo&.nombre %></td>
-                  <td><%= d.cantidad %></td>
-                  <% if local_assigns[:show_precio] %>
-                    <td><%= d.precio_unitario.present? ? number_to_currency(d.precio_unitario, unit: "$") : "—" %></td>
+  <div class="row g-3">
+    <% recent.each do |m| %>
+      <% show_punta = m.detalle_movimientos.any? { |d| d.stock_punta.present? } %>
+      <div class="col-md-6 col-xl-4">
+        <div class="card border-0 shadow-sm movement-card h-100 overflow-hidden">
+          <div class="card-header bg-white py-2">
+            <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+              <div class="min-w-0">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                  <% if m.proyecto %>
+                    <span class="badge badge-usse fs-6">C.C. <%= m.proyecto.c_c %></span>
+                  <% else %>
+                    <span class="badge text-bg-secondary fs-6">Sin proyecto</span>
                   <% end %>
-                  <td><%= d.stock_punta&.nombre_punta || "—" %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+                  <% if m.proveedor %>
+                    <span class="fs-5 fw-bold movement-cc text-truncate"><%= m.proveedor.nombre %></span>
+                  <% end %>
+                </div>
+                <div class="small text-secondary text-truncate">
+                  <% if m.proyecto %>
+                    <%= m.proyecto.nombre_obra %>
+                    ·
+                  <% end %>
+                  <%= m.responsable.presence || "Sin responsable" %>
+                </div>
+              </div>
+              <div class="text-md-end flex-shrink-0">
+                <div class="small text-secondary"><%= format_datetime(m.fecha_hora, format: "%d/%m/%Y") %></div>
+                <div class="fw-semibold"><%= format_datetime(m.fecha_hora, format: "%H:%M") %></div>
+              </div>
+            </div>
+          </div>
+          <% if m.detalle_movimientos.any? %>
+            <div class="table-responsive">
+              <table class="table table-striped table-hover table-sm mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Artículo</th>
+                    <th class="text-end">Cant.</th>
+                    <% if local_assigns[:show_precio] %>
+                      <th class="text-end">Precio</th>
+                    <% end %>
+                    <% if show_punta %>
+                      <th>Punta</th>
+                    <% end %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% m.detalle_movimientos.each do |d| %>
+                    <tr>
+                      <td class="text-truncate" title="<%= d.articulo&.nombre %>"><%= d.articulo&.nombre %></td>
+                      <td class="text-end text-nowrap"><%= d.cantidad %></td>
+                      <% if local_assigns[:show_precio] %>
+                        <td class="text-end text-nowrap"><%= d.precio_unitario.present? ? "#{number_to_currency(d.precio_unitario, unit: "$")} #{m.moneda}" : "—" %></td>
+                      <% end %>
+                      <% if show_punta %>
+                        <td class="text-truncate"><%= d.stock_punta&.nombre_punta || "—" %></td>
+                      <% end %>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <div class="card-body py-2">
+              <p class="small text-secondary mb-0">No hay items en este movimiento.</p>
+            </div>
+          <% end %>
         </div>
-      <% else %>
-        <p class="small text-secondary mb-0">No hay items en este movimiento.</p>
-      <% end %>
-    </div>
-  <% end %>
+      </div>
+    <% end %>
+  </div>
 <% else %>
   <p class="text-secondary mb-0">No hay movimientos registrados.</p>
 <% end %>
