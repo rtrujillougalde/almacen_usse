@@ -43,4 +43,31 @@ RSpec.describe SharedProduction::DatabaseUrl do
       expect(described_class.sibling(nil, "cache")).to be_nil
     end
   end
+
+  describe ".database_name" do
+    it "reads the path" do
+      expect(described_class.database_name("mysql2://user:pass@host:3306/railway")).to eq("railway")
+    end
+
+    it "is nil when the URL has no database path" do
+      expect(described_class.database_name("mysql2://user:pass@host:3306")).to be_nil
+      expect(described_class.database_name("mysql2://user:pass@host:3306/")).to be_nil
+    end
+  end
+
+  describe ".with_database" do
+    it "leaves a URL that already has a database name" do
+      expect(described_class.with_database("mysql://user:pass@host:3306/railway", "ignored"))
+        .to eq("mysql2://user:pass@host:3306/railway")
+    end
+
+    it "appends MYSQLDATABASE when Railway omitted the path" do
+      expect(described_class.with_database("mysql://user:pass@host:3306", "inventory"))
+        .to eq("mysql2://user:pass@host:3306/inventory")
+    end
+
+    it "returns nil when there is no name in the URL or fallback" do
+      expect(described_class.with_database("mysql2://user:pass@host:3306", nil)).to be_nil
+    end
+  end
 end

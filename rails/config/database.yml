@@ -28,9 +28,13 @@ test:
 # Sibling Solid DBs reuse that host/user/password unless CACHE/QUEUE/CABLE_DATABASE_URL is set.
 <%
   require Rails.root.join("lib/shared_production/database_url").to_s
-  cache_database_url = SharedProduction::DatabaseUrl.sibling(ENV["DATABASE_URL"], "cache", override: ENV["CACHE_DATABASE_URL"])
-  queue_database_url = SharedProduction::DatabaseUrl.sibling(ENV["DATABASE_URL"], "queue", override: ENV["QUEUE_DATABASE_URL"])
-  cable_database_url = SharedProduction::DatabaseUrl.sibling(ENV["DATABASE_URL"], "cable", override: ENV["CABLE_DATABASE_URL"])
+  production_database_url = SharedProduction::DatabaseUrl.with_database(
+    ENV["DATABASE_URL"],
+    ENV["MYSQLDATABASE"].presence || ENV["MYSQL_DATABASE"].presence
+  )
+  cache_database_url = SharedProduction::DatabaseUrl.sibling(production_database_url, "cache", override: ENV["CACHE_DATABASE_URL"])
+  queue_database_url = SharedProduction::DatabaseUrl.sibling(production_database_url, "queue", override: ENV["QUEUE_DATABASE_URL"])
+  cable_database_url = SharedProduction::DatabaseUrl.sibling(production_database_url, "cable", override: ENV["CABLE_DATABASE_URL"])
 %>
 production:
   primary: &primary_production
@@ -38,6 +42,9 @@ production:
     database: almacen_usse_rails_production
     username: <%= ENV.fetch("DB_USERNAME") { "almacen_usse" } %>
     password: <%= ENV["ALMACEN_USSE_DATABASE_PASSWORD"] %>
+    <% if production_database_url %>
+    url: <%= production_database_url %>
+    <% end %>
   cache:
     <<: *primary_production
     database: almacen_usse_rails_production_cache

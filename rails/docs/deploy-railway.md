@@ -38,7 +38,7 @@ Add these under the Rails service **Variables**. Do not commit them.
 | --- | --- |
 | `RAILS_ENV` | `production` |
 | `RAILS_MASTER_KEY` | contents of `rails/config/master.key` on your laptop |
-| `DATABASE_URL` | existing MySQL URL, scheme **`mysql2://`** (change `mysql://` if Railway shows that) |
+| `DATABASE_URL` | existing MySQL URL, scheme **`mysql2://`**, **including the database name**: `mysql2://user:pass@host:3306/the_db`. A URL without `/the_db` causes `No database selected`. If Railway omits the path, also set `MYSQLDATABASE` to that same name. |
 | `SOLID_QUEUE_IN_PUMA` | `true` |
 | `APP_HOST` | public hostname only, e.g. `your-service.up.railway.app` (no `https://`) |
 

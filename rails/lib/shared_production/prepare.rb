@@ -26,6 +26,17 @@ module SharedProduction
         return Result.new(skipped?: true, reason: "DATABASE_URL is missing")
       end
 
+      @database_url = DatabaseUrl.with_database(
+        @database_url,
+        ENV["MYSQLDATABASE"].presence || ENV["MYSQL_DATABASE"].presence
+      )
+      if DatabaseUrl.database_name(@database_url).blank?
+        return Result.new(
+          skipped?: true,
+          reason: "DATABASE_URL has no database name. Set mysql2://user:pass@host:port/existing_db or MYSQLDATABASE."
+        )
+      end
+
       ensure_users_table!
       record_existing_domain_migrations!
       prepare_solid_databases!

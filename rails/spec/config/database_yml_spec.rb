@@ -24,6 +24,20 @@ RSpec.describe "config/database.yml" do
     restore_env("CACHE_DATABASE_URL", original_cache)
   end
 
+  it "puts MYSQLDATABASE on a Railway URL that omitted the path" do
+    originals = %w[DATABASE_URL CACHE_DATABASE_URL MYSQLDATABASE].to_h { |key| [key, ENV[key]] }
+    ENV["DATABASE_URL"] = "mysql://user:pass@host:3306"
+    ENV.delete("CACHE_DATABASE_URL")
+    ENV["MYSQLDATABASE"] = "inventory"
+
+    config = load_database_yml.fetch("production")
+
+    expect(config.dig("primary", "url")).to eq("mysql2://user:pass@host:3306/inventory")
+    expect(config.dig("cache", "url")).to eq("mysql2://user:pass@host:3306/inventory_cache")
+  ensure
+    originals.each { |key, value| restore_env(key, value) }
+  end
+
   it "prefers CACHE_DATABASE_URL when set" do
     original_url = ENV["DATABASE_URL"]
     original_cache = ENV["CACHE_DATABASE_URL"]

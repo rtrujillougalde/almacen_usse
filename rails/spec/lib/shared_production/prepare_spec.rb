@@ -9,6 +9,13 @@ RSpec.describe SharedProduction::Prepare do
       expect(result.reason).to eq("DATABASE_URL is missing")
     end
 
+    it "skips when DATABASE_URL has no database name" do
+      result = described_class.call(database_url: "mysql2://user:pass@host:3306")
+
+      expect(result.skipped?).to eq(true)
+      expect(result.reason).to include("no database name")
+    end
+
     it "does not recreate inventory tables or drop users" do
       articulo = create(:articulo, nombre: "Existing Stock")
       users_before = User.count
