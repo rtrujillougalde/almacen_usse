@@ -21,9 +21,9 @@ Create the Rails service in the **same Railway project** as Streamlit + MySQL.
 | Source | GitHub repo `rtrujillougalde/almacen_usse`, branch `main-ruby-rails` |
 | Root Directory | `rails` |
 | Builder | Dockerfile (`rails/Dockerfile`) |
-| Start command | leave empty (use image CMD: `./bin/thrust ./bin/rails server`) |
+| Start command | leave empty (image CMD is `./bin/docker-start`, which binds Puma to `PORT`) |
 | Health check path | `/up` |
-| Target port | `80` |
+| Target port | leave Railway default — do **not** set `80` (Thruster vs `$PORT` made `/up` time out) |
 | MySQL | attach the **existing** plugin; do not create a second MySQL |
 
 [`railway.toml`](../railway.toml) repeats builder + health check for services

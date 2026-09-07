@@ -1,0 +1,9 @@
+#!/bin/bash -e
+
+# Railway sets PORT and health-checks that port. Thruster listens on 80 and
+# proxies to 3000, so /up never reaches Puma. Bind Puma to PORT directly.
+if [ -n "${PORT}" ]; then
+  exec ./bin/rails server -b 0.0.0.0 -p "${PORT}"
+fi
+
+exec ./bin/thrust ./bin/rails server

@@ -1,7 +1,9 @@
 # Used when the Railway service Root Directory is `rails`.
 # New Railway projects may ignore this file; set the same values in the dashboard
-# (see docs/deploy-railway.md). Do not add a startCommand — the Dockerfile CMD
-# (./bin/thrust ./bin/rails server) must keep listening on port 80.
+# (see docs/deploy-railway.md).
+#
+# Do not set startCommand and do not force target port 80. The image CMD
+# (./bin/docker-start) binds Puma to Railway's PORT so /up is reachable.
 
 [build]
 builder = "DOCKERFILE"
