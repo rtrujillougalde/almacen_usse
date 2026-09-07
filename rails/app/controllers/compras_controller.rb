@@ -123,9 +123,9 @@ class ComprasController < ApplicationController
     @articulos = Articulo.order(:nombre)
     @proveedores = Proveedor.order(:nombre)
     @recent = Movimiento.where(tipo: :compra)
-                        .includes(:proyecto, detalle_movimientos: :articulo)
+                        .includes(:proyecto, :proveedor, detalle_movimientos: [ :articulo, :stock_punta ])
                         .order(fecha_hora: :desc)
-                        .limit(5)
+                        .limit(6)
   end
 
   def header_validation_error

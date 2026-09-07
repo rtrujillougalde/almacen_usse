@@ -2,8 +2,13 @@
 
 <div class="mb-4">
   <div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-0 pt-3 pb-0">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Movimientos de entrada recientes</h2>
+        <span class="badge text-bg-light text-secondary">6 últimos</span>
+      </div>
+    </div>
     <div class="card-body">
-      <h2 class="h5 mb-3">Movimientos de Entrada Recientes</h2>
       <%= render "shared/recent_movements", recent: @recent %>
     </div>
   </div>
