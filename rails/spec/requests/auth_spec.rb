@@ -43,7 +43,7 @@ RSpec.describe "Authentication and roles", type: :request do
   describe "operador access" do
     before { sign_in_as(:operador) }
 
-    it "allows inventario entradas compras salidas" do
+    it "allows the same pages as admin" do
       get inventario_path
       expect(response).to have_http_status(:ok)
       get entradas_path
@@ -52,17 +52,23 @@ RSpec.describe "Authentication and roles", type: :request do
       expect(response).to have_http_status(:ok)
       get salidas_path
       expect(response).to have_http_status(:ok)
+      get proveedores_path
+      expect(response).to have_http_status(:ok)
+      get proyectos_path
+      expect(response).to have_http_status(:ok)
+      get reportes_path
+      expect(response).to have_http_status(:ok)
     end
 
-    it "denies proveedores and proyectos and reportes" do
-      get proveedores_path
-      expect(response).to redirect_to(inventario_path)
-
-      get proyectos_path
-      expect(response).to redirect_to(inventario_path)
-
-      get reportes_path
-      expect(response).to redirect_to(inventario_path)
+    it "shows the same sidebar links as admin" do
+      get inventario_path
+      expect(response.body).to include("Inventario")
+      expect(response.body).to include("Entradas")
+      expect(response.body).to include("Compras")
+      expect(response.body).to include("Salidas")
+      expect(response.body).to include("Proyectos")
+      expect(response.body).to include("Reportes")
+      expect(response.body).to include("Proveedores")
     end
   end
 

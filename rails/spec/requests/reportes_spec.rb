@@ -367,17 +367,25 @@ end
 
 RSpec.describe "Reportes access", type: :request do
   let!(:proyecto) { create(:proyecto, c_c: 9999) }
+  let!(:articulo) { create(:articulo, nombre: "Acceso Item") }
 
-  it "forbids operador from reportes" do
-    sign_in_as(:operador)
-    get reportes_path
-    expect(response).to redirect_to(inventario_path)
+  before do
+    entrada = create(:movimiento, proyecto: proyecto, tipo: :entrada)
+    create(:detalle_movimiento, movimiento: entrada, articulo: articulo, cantidad: 1)
   end
 
-  it "forbids operador from generating reports" do
+  it "allows operador to open reportes" do
+    sign_in_as(:operador)
+    get reportes_path
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Selecciona el tipo de reporte")
+  end
+
+  it "allows operador to generate reports" do
     sign_in_as(:operador)
     post reportes_path, params: { c_c: 9999, kind: "entrada" }
-    expect(response).to redirect_to(inventario_path)
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(reportes_path(c_c: "9999", kind: "entrada", generated: "1"))
   end
 
   it "allows admin to open the reportes form" do
