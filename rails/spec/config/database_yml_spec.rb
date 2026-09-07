@@ -16,9 +16,10 @@ RSpec.describe "config/database.yml" do
 
     config = load_database_yml.fetch("production")
 
-    expect(config.dig("cache", "url")).to eq("mysql2://user:pass@host:3306/inventory_cache")
-    expect(config.dig("queue", "url")).to eq("mysql2://user:pass@host:3306/inventory_queue")
-    expect(config.dig("cable", "url")).to eq("mysql2://user:pass@host:3306/inventory_cable")
+    expect(config.dig("primary", "url")).to eq("mysql2://user:pass@host:3306/inventory")
+    expect(config.dig("cache", "url")).to eq("mysql2://user:pass@host:3306/inventory")
+    expect(config.dig("queue", "url")).to eq("mysql2://user:pass@host:3306/inventory")
+    expect(config.dig("cable", "url")).to eq("mysql2://user:pass@host:3306/inventory")
   ensure
     restore_env("DATABASE_URL", original_url)
     restore_env("CACHE_DATABASE_URL", original_cache)
@@ -33,7 +34,7 @@ RSpec.describe "config/database.yml" do
     config = load_database_yml.fetch("production")
 
     expect(config.dig("primary", "url")).to eq("mysql2://user:pass@host:3306/inventory")
-    expect(config.dig("cache", "url")).to eq("mysql2://user:pass@host:3306/inventory_cache")
+    expect(config.dig("cache", "url")).to eq("mysql2://user:pass@host:3306/inventory")
   ensure
     originals.each { |key, value| restore_env(key, value) }
   end

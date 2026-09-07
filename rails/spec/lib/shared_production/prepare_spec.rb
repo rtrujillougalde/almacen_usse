@@ -46,5 +46,21 @@ RSpec.describe SharedProduction::Prepare do
       expect(ActiveRecord::Tasks::DatabaseTasks).not_to have_received(:prepare_all)
       expect(ActiveRecord::Tasks::DatabaseTasks).not_to have_received(:load_schema)
     end
+
+    it "does not call DatabaseTasks.create, which leaves MySQL with no database selected" do
+      allow(ActiveRecord::Tasks::DatabaseTasks).to receive(:create)
+
+      described_class.call(database_url: "mysql2://127.0.0.1/almacen_usse_rails_test")
+
+      expect(ActiveRecord::Tasks::DatabaseTasks).not_to have_received(:create)
+    end
+
+    it "reconnects to the primary database before migrating" do
+      allow(ActiveRecord::Base).to receive(:establish_connection).and_call_original
+
+      described_class.call(database_url: "mysql2://127.0.0.1/almacen_usse_rails_test")
+
+      expect(ActiveRecord::Base).to have_received(:establish_connection).with(:primary).at_least(:once)
+    end
   end
 end

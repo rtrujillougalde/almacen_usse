@@ -40,6 +40,7 @@ module SharedProduction
       ensure_users_table!
       record_existing_domain_migrations!
       prepare_solid_databases!
+      reconnect_primary!
       migrate_primary!
 
       Result.new(skipped?: false, reason: nil)
@@ -88,15 +89,14 @@ module SharedProduction
     end
 
     def create_and_load_solid(config)
-      begin
-        ActiveRecord::Tasks::DatabaseTasks.create(config)
-      rescue ActiveRecord::DatabaseAlreadyExists
-        # Sibling Solid database already exists on this MySQL server.
-      end
-
+      # Do not call DatabaseTasks.create. MySQL create connects without a
+      # database, and on DatabaseAlreadyExists it never reconnects — Railway's
+      # single `railway` DB then fails migrate with "No database selected".
       return if solid_schema_loaded?(config)
 
       ActiveRecord::Tasks::DatabaseTasks.load_schema(config)
+    rescue ActiveRecord::NoDatabaseError
+      # Railway MySQL often cannot create extra databases. Skip this Solid DB.
     end
 
     def solid_schema_loaded?(config)
@@ -112,7 +112,12 @@ module SharedProduction
       end
     end
 
+    def reconnect_primary!
+      ActiveRecord::Base.establish_connection(:primary)
+    end
+
     def migrate_primary!
+      reconnect_primary!
       ActiveRecord::Base.connection_pool.migration_context.migrate
     end
   end

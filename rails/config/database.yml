@@ -32,9 +32,11 @@ test:
     ENV["DATABASE_URL"],
     ENV["MYSQLDATABASE"].presence || ENV["MYSQL_DATABASE"].presence
   )
-  cache_database_url = SharedProduction::DatabaseUrl.sibling(production_database_url, "cache", override: ENV["CACHE_DATABASE_URL"])
-  queue_database_url = SharedProduction::DatabaseUrl.sibling(production_database_url, "queue", override: ENV["QUEUE_DATABASE_URL"])
-  cable_database_url = SharedProduction::DatabaseUrl.sibling(production_database_url, "cable", override: ENV["CABLE_DATABASE_URL"])
+  # Railway MySQL is one database. Reuse it for Solid Cache/Queue/Cable instead
+  # of sibling DB names that we cannot CREATE DATABASE for.
+  cache_database_url = ENV["CACHE_DATABASE_URL"].presence || production_database_url
+  queue_database_url = ENV["QUEUE_DATABASE_URL"].presence || production_database_url
+  cable_database_url = ENV["CABLE_DATABASE_URL"].presence || production_database_url
 %>
 production:
   primary: &primary_production
@@ -43,26 +45,26 @@ production:
     username: <%= ENV.fetch("DB_USERNAME") { "almacen_usse" } %>
     password: <%= ENV["ALMACEN_USSE_DATABASE_PASSWORD"] %>
     <% if production_database_url %>
-    url: <%= production_database_url %>
+    url: <%= production_database_url.to_json %>
     <% end %>
   cache:
     <<: *primary_production
     database: almacen_usse_rails_production_cache
     migrations_paths: db/cache_migrate
     <% if cache_database_url %>
-    url: <%= cache_database_url %>
+    url: <%= cache_database_url.to_json %>
     <% end %>
   queue:
     <<: *primary_production
     database: almacen_usse_rails_production_queue
     migrations_paths: db/queue_migrate
     <% if queue_database_url %>
-    url: <%= queue_database_url %>
+    url: <%= queue_database_url.to_json %>
     <% end %>
   cable:
     <<: *primary_production
     database: almacen_usse_rails_production_cable
     migrations_paths: db/cable_migrate
     <% if cable_database_url %>
-    url: <%= cable_database_url %>
+    url: <%= cable_database_url.to_json %>
     <% end %>

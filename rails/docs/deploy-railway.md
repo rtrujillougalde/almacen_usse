@@ -43,8 +43,8 @@ Add these under the Rails service **Variables**. Do not commit them.
 | `APP_HOST` | public hostname only, e.g. `your-service.up.railway.app` (no `https://`) |
 
 Do not set `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL`, or `CABLE_DATABASE_URL`
-unless you have a reason. The app derives sibling names (`…_cache`, `…_queue`,
-`…_cable`) on the same MySQL server.
+unless you have a reason. Railway MySQL is one database (`railway`). Cache,
+queue, and cable tables are created in that same database.
 
 Copy `DATABASE_URL` from the existing MySQL service. That is how Rails and
 Streamlit share one database.
