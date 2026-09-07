@@ -8,7 +8,7 @@
           <label class="form-label">Selecciona el tipo de reporte</label>
           <%= select_tag :kind,
                 options_for_select(
-                  [["Entradas", "entrada"], ["Salidas", "salida"], ["Comparativo", "comparativo"]],
+                  [["Entradas", "entrada"], ["Salidas", "salida"], ["Compras", "compra"], ["Material utilizado", "utilizado"]],
                   @kind || params[:kind] || "entrada"
                 ),
                 class: "form-select",
@@ -63,11 +63,14 @@
 
       <div class="mb-3">
         <% kind = @kind || params[:kind] || "entrada" %>
-        <% if kind == "comparativo" %>
+        <% if kind == "utilizado" %>
           <div class="alert alert-info mb-0">
-            Este reporte compara los materiales y herramientas que entraron
-            contra los que salieron para un mismo centro de costos,
-            mostrando el porcentaje de uso real.
+            Este reporte calcula el material utilizado del proyecto:
+            compras + salidas − entradas. MXN y USD se muestran en tablas
+            aparte; no se suman ni se restan entre sí. Entradas y salidas
+            usan la moneda de la compra más reciente de ese material.
+            Las herramientas se cobran al 5% de depreciación y no restan
+            las entradas.
           </div>
         <% else %>
           <div class="alert alert-info mb-0">
@@ -84,6 +87,6 @@
   </div>
 </div>
 
-<% if @preview_rows.present? %>
+<% if @preview_rows.present? || @preview_groups.present? %>
   <%= render "results_panel" %>
 <% end %>

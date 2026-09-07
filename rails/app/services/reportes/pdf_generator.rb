@@ -12,12 +12,13 @@ module Reportes
       new.movement(movement_type: movement_type, cc: cc, rows: rows)
     end
 
-    def self.comparativo(cc:, rows:)
-      new.comparativo(cc: cc, rows: rows)
+    def self.utilizado(cc:, groups:)
+      new.utilizado(cc: cc, groups: groups)
     end
 
     def movement(movement_type:, cc:, rows:)
-      report_label = movement_type.to_s == "entrada" ? "Entradas" : "Salidas"
+      compra = movement_type.to_s == "compra"
+      report_label = { "entrada" => "Entradas", "salida" => "Salidas", "compra" => "Compras" }.fetch(movement_type.to_s, movement_type.to_s.capitalize)
       generated_at = Time.current
 
       build_document(left_margin: 50, right_margin: 50) do |pdf|
@@ -31,72 +32,42 @@ module Reportes
           next
         end
 
-        data = [ [ "Fecha/Hora", "Material", "Cantidad", "Unidad" ] ]
+        data = [ movement_headers(compra) ]
 
         rows.each do |r|
-          data << [
-            r.fecha_hora&.strftime("%Y-%m-%d %H:%M").to_s,
-            r.material.to_s,
-            format_qty(r.cantidad),
-            r.unidad_medida.to_s
-          ]
+          data << movement_row_values(r, compra)
         end
 
-        draw_data_table(pdf, data, S::COL_WIDTHS)
+        draw_data_table(pdf, data, compra ? S::COL_WIDTHS_COMPRA : S::COL_WIDTHS)
       end
     end
 
-    def comparativo(cc:, rows:)
+    def utilizado(cc:, groups:)
       generated_at = Time.current
+      all_rows = groups.flat_map { |g| g[:rows] }
       metadata_cc =
-        if rows.blank?
+        if all_rows.blank?
           cc
         else
-          unique = rows.map { |r| r[:c_c] }.uniq
+          unique = all_rows.map { |r| r[:c_c] }.uniq
           unique.size == 1 ? unique.first : "Varios"
         end
 
       build_document(left_margin: 40, right_margin: 40) do |pdf|
-        draw_title(pdf, "Reporte Comparativo: Entradas vs Salidas")
+        draw_title(pdf, "Reporte de Material Utilizado")
         pdf.move_down 14
         draw_metadata_table(pdf, generated_at, metadata_cc)
         pdf.move_down 22
 
-        if rows.blank?
-          pdf.text "No hay datos comparativos para mostrar.", size: 10
+        if groups.blank?
+          pdf.text "No hay datos de material utilizado para mostrar.", size: 10
           next
         end
 
-        sorted = rows.sort_by { |r| [ r[:c_c].to_s, r[:material].to_s ] }
-        # Column order matches Python PDF (Salidas before Entradas).
-        data = [ [
-          "Material", "Tipo", "Unidad", "Precio Unit.",
-          "Salidas", "Entradas", "Usado", "Costo Mat. Usado"
-        ] ]
-
-        sorted.each do |r|
-          data << [
-            r[:material].to_s,
-            r[:tipo].to_s,
-            r[:unidad_medida].to_s,
-            money_with_commas(r[:precio_unitario]),
-            format_qty(r[:total_salida]),
-            format_qty(r[:total_entrada]),
-            format_qty(r[:usado]),
-            money_with_commas(r[:costo_material_usado])
-          ]
+        groups.each_with_index do |group, index|
+          pdf.move_down 16 if index.positive?
+          draw_utilizado_group(pdf, group)
         end
-
-        draw_data_table(pdf, data, S::COL_WIDTHS_COMP)
-        pdf.move_down 22
-
-        total_costo = sorted.sum { |r| r[:costo_material_usado].to_f }
-        pdf.fill_color S::SUMMARY_COLOR
-        pdf.text "<b>Costo Total:</b> #{money_with_commas(total_costo)}",
-                 size: S::SUMMARY_FONT_SIZE,
-                 align: :right,
-                 inline_format: true
-        pdf.fill_color "000000"
       end
     end
 
@@ -145,10 +116,65 @@ module Reportes
       end
     end
 
+    def draw_utilizado_group(pdf, group)
+      rows = group[:rows].sort_by { |r| [ r[:c_c].to_s, r[:material].to_s ] }
+      pdf.fill_color S::TITLE_COLOR
+      pdf.text "Moneda: #{group[:moneda]}", size: S::SUMMARY_FONT_SIZE, style: :bold
+      pdf.fill_color "000000"
+      pdf.move_down 10
+
+      data = [ [
+        "Material", "Tipo", "Unidad", "Precio Unit.",
+        "Compras", "Salidas", "Entradas", "Utilizado", "Costo"
+      ] ]
+
+      rows.each do |r|
+        data << [
+          r[:material].to_s,
+          r[:tipo].to_s,
+          r[:unidad_medida].to_s,
+          money_with_commas(r[:precio_unitario]),
+          format_qty(r[:total_compra]),
+          format_qty(r[:total_salida]),
+          format_qty(r[:total_entrada]),
+          format_qty(r[:utilizado]),
+          money_with_commas(r[:costo])
+        ]
+      end
+
+      draw_data_table(pdf, data, S::COL_WIDTHS_UTILIZADO)
+      pdf.move_down 12
+
+      total_costo = group[:total_costo] || rows.sum { |r| r[:costo].to_f }
+      pdf.fill_color S::SUMMARY_COLOR
+      pdf.text "<b>Costo Total (#{group[:moneda]}):</b> #{money_with_commas(total_costo)}",
+               size: S::SUMMARY_FONT_SIZE,
+               align: :right,
+               inline_format: true
+      pdf.fill_color "000000"
+    end
+
     def draw_title(pdf, text)
       pdf.fill_color S::TITLE_COLOR
       pdf.text text, size: S::TITLE_FONT_SIZE, style: :bold, align: :center
       pdf.fill_color "000000"
+    end
+
+    def movement_headers(compra)
+      headers = [ "Fecha/Hora", "Material", "Cantidad", "Unidad" ]
+      compra ? headers + [ "Precio Unit.", "Proveedor", "Moneda" ] : headers
+    end
+
+    def movement_row_values(row, compra)
+      values = [
+        row.fecha_hora&.strftime("%Y-%m-%d %H:%M").to_s,
+        row.material.to_s,
+        format_qty(row.cantidad),
+        row.unidad_medida.to_s
+      ]
+      return values unless compra
+
+      values + [ money(row.precio_unitario), row.proveedor.to_s, row.moneda.to_s ]
     end
 
     def draw_metadata_table(pdf, generated_at, cc_value)

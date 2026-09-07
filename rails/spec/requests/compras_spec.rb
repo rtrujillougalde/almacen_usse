@@ -110,9 +110,23 @@ RSpec.describe "Compras", type: :request do
     expect(response.body).to include("Proyecto es obligatorio")
   end
 
+  it "shows precio unitario in recent compras" do
+    sign_in_as(:operador)
+    movimiento = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor)
+    articulo = create(:articulo, nombre: "Item Reciente")
+    create(:detalle_movimiento, movimiento: movimiento, articulo: articulo, cantidad: 2, precio_unitario: 15.5)
+
+    get compras_path
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Precio unitario")
+    expect(response.body).to include("Item Reciente")
+    expect(response.body).to include("$15.50")
+  end
+
   it "forbids consulta from compras" do
     sign_in_as(:consulta)
     get compras_path
     expect(response).to redirect_to(inventario_path)
   end
 end
+

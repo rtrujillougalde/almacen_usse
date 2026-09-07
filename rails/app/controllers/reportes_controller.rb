@@ -17,8 +17,11 @@ class ReportesController < ApplicationController
       return
     end
 
-    @preview_rows = build_preview_rows
-    @total_costo = @kind == "comparativo" ? @rows.sum { |r| r[:costo_material_usado].to_f } : nil
+    if @kind == "utilizado"
+      @preview_groups = build_preview_groups
+    else
+      @preview_rows = build_preview_rows
+    end
   end
 
   # Validates filters then redirects (303) so Turbo Drive updates the page.
@@ -31,7 +34,7 @@ class ReportesController < ApplicationController
                          alert: "Debes seleccionar un Centro de Costos para generar el reporte."
     end
 
-    unless %w[entrada salida comparativo].include?(@kind)
+    unless %w[entrada salida compra utilizado].include?(@kind)
       return redirect_to reportes_path(filter_params), alert: "Tipo de reporte inválido."
     end
 
@@ -46,7 +49,7 @@ class ReportesController < ApplicationController
   def download
     load_filters_from_params!
 
-    unless @cc && %w[entrada salida comparativo].include?(@kind)
+    unless @cc && %w[entrada salida compra utilizado].include?(@kind)
       redirect_to reportes_path, alert: "Parámetros de reporte inválidos."
       return
     end
@@ -58,12 +61,12 @@ class ReportesController < ApplicationController
     end
 
     format = params[:file_format].presence || "pdf"
-    report_type = @kind == "comparativo" ? "comparativo" : @kind
+    report_type = @kind
 
     if format == "pdf"
       pdf =
-        if @kind == "comparativo"
-          Reportes::PdfGenerator.comparativo(cc: @cc, rows: rows)
+        if @kind == "utilizado"
+          Reportes::PdfGenerator.utilizado(cc: @cc, groups: rows)
         else
           Reportes::PdfGenerator.movement(movement_type: @kind, cc: @cc, rows: rows)
         end
@@ -75,8 +78,8 @@ class ReportesController < ApplicationController
                 disposition: "attachment"
     else
       xlsx =
-        if @kind == "comparativo"
-          Reportes::ExcelGenerator.comparativo(rows: rows)
+        if @kind == "utilizado"
+          Reportes::ExcelGenerator.utilizado(groups: rows)
         else
           Reportes::ExcelGenerator.movement(movement_type: @kind, rows: rows)
         end
@@ -120,12 +123,12 @@ class ReportesController < ApplicationController
 
   def fetch_rows
     case @kind
-    when "entrada", "salida"
+    when "entrada", "salida", "compra"
       Reportes::Query.movement_rows(
         cc: @cc, movement_type: @kind, date_from: @date_from, date_to: @date_to
       ).to_a
-    when "comparativo"
-      Reportes::Query.comparativo_rows(cc: @cc, date_from: @date_from, date_to: @date_to)
+    when "utilizado"
+      Reportes::Query.utilizado_groups(cc: @cc, date_from: @date_from, date_to: @date_to)
     else
       []
     end
@@ -137,36 +140,55 @@ class ReportesController < ApplicationController
       "No se encontraron registros de entrada en el rango de fechas especificado."
     when "salida"
       "No se encontraron registros de salida en el rango de fechas especificado."
+    when "compra"
+      "No se encontraron registros de compra en el rango de fechas especificado."
+    when "utilizado"
+      "No se encontraron movimientos para calcular el material utilizado."
     else
       "No se encontraron registros en el rango de fechas especificado."
     end
   end
 
+  def build_preview_groups
+    @rows.map do |group|
+      {
+        moneda: group[:moneda],
+        total_costo: group[:total_costo],
+        rows: group[:rows].map { |r| preview_utilizado_row(r) }
+      }
+    end
+  end
+
+  def preview_utilizado_row(r)
+    {
+      "C.C" => r[:c_c],
+      "Material" => r[:material],
+      "Tipo" => r[:tipo],
+      "Unidad" => r[:unidad_medida],
+      "Precio Unit." => format("$%.2f", r[:precio_unitario].to_f),
+      "Compras" => r[:total_compra],
+      "Salidas" => r[:total_salida],
+      "Entradas" => r[:total_entrada],
+      "Utilizado" => r[:utilizado],
+      "Costo" => format("$%.2f", r[:costo].to_f)
+    }
+  end
+
   def build_preview_rows
-    if @kind == "comparativo"
-      @rows.map do |r|
-        {
-          "C.C" => r[:c_c],
-          "Material" => r[:material],
-          "Tipo" => r[:tipo],
-          "Unidad" => r[:unidad_medida],
-          "Precio Unit." => format("$%.2f", r[:precio_unitario].to_f),
-          "Total Entradas" => r[:total_entrada],
-          "Total Salidas" => r[:total_salida],
-          "Usado" => r[:usado],
-          "Costo material usado" => format("$%.2f", r[:costo_material_usado].to_f)
-        }
+    @rows.map do |r|
+      preview = {
+        "Fecha/Hora" => r.fecha_hora,
+        "C.C" => r.c_c,
+        "Material" => r.material,
+        "Cantidad" => r.cantidad,
+        "Unidad" => r.unidad_medida
+      }
+      if @kind == "compra"
+        preview["Precio Unit."] = format("$%.2f", r.precio_unitario.to_f)
+        preview["Proveedor"] = r.proveedor
+        preview["Moneda"] = r.moneda
       end
-    else
-      @rows.map do |r|
-        {
-          "Fecha/Hora" => r.fecha_hora,
-          "C.C" => r.c_c,
-          "Material" => r.material,
-          "Cantidad" => r.cantidad,
-          "Unidad" => r.unidad_medida
-        }
-      end
+      preview
     end
   end
 end

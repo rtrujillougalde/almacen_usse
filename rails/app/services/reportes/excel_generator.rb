@@ -10,31 +10,34 @@ module Reportes
       new.movement(movement_type: movement_type, rows: rows)
     end
 
-    def self.comparativo(rows:)
-      new.comparativo(rows: rows)
+    def self.utilizado(groups:)
+      new.utilizado(groups: groups)
     end
 
     def movement(movement_type:, rows:)
-      sheet_name = movement_type.to_s == "entrada" ? "Entradas" : "Salidas"
+      compra = movement_type.to_s == "compra"
+      sheet_name = { "entrada" => "Entradas", "salida" => "Salidas", "compra" => "Compras" }.fetch(movement_type.to_s, "Movimientos")
       package = Axlsx::Package.new
       workbook = package.workbook
       styles = build_styles(workbook)
 
       workbook.add_worksheet(name: sheet_name) do |sheet|
         headers = [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad" ]
+        headers += [ "Precio Unit.", "Proveedor", "Moneda" ] if compra
         sheet.add_row headers, style: styles[:header]
 
         rows.each do |r|
-          sheet.add_row(
-            [
-              r.fecha_hora&.strftime("%Y-%m-%d %H:%M:%S").to_s,
-              r.c_c,
-              r.material.to_s,
-              r.cantidad.to_f,
-              r.unidad_medida.to_s
-            ],
-            style: Array.new(5, styles[:body])
-          )
+          values = [
+            r.fecha_hora&.strftime("%Y-%m-%d %H:%M:%S").to_s,
+            r.c_c,
+            r.material.to_s,
+            r.cantidad.to_f,
+            r.unidad_medida.to_s
+          ]
+          values += [ r.precio_unitario.to_f, r.proveedor.to_s, r.moneda.to_s ] if compra
+          row_styles = Array.new(values.length, styles[:body])
+          row_styles[5] = styles[:currency] if compra
+          sheet.add_row(values, style: row_styles)
         end
 
         finalize_sheet!(sheet, headers: headers, table_name: "Tabla_#{sheet_name}")
@@ -43,41 +46,44 @@ module Reportes
       package.to_stream.read
     end
 
-    def comparativo(rows:)
+    def utilizado(groups:)
       package = Axlsx::Package.new
       workbook = package.workbook
       styles = build_styles(workbook)
 
-      workbook.add_worksheet(name: "Comparativo") do |sheet|
-        headers = [
-          "C.C", "Material", "Tipo", "Unidad", "Precio Unit.",
-          "Entradas", "Salidas", "Usado", "Costo Mat. Usado"
-        ]
-        sheet.add_row headers, style: styles[:header]
+      groups.each do |group|
+        workbook.add_worksheet(name: group[:moneda].to_s) do |sheet|
+          headers = [
+            "C.C", "Material", "Tipo", "Unidad", "Precio Unit.",
+            "Compras", "Salidas", "Entradas", "Utilizado", "Costo"
+          ]
+          sheet.add_row headers, style: styles[:header]
 
-        sorted = rows.sort_by { |r| [ r[:c_c].to_s, r[:material].to_s ] }
-        sorted.each do |r|
-          sheet.add_row(
-            [
-              r[:c_c],
-              r[:material],
-              r[:tipo],
-              r[:unidad_medida],
-              r[:precio_unitario].to_f,
-              r[:total_entrada].to_f,
-              r[:total_salida].to_f,
-              r[:usado].to_f,
-              r[:costo_material_usado].to_f
-            ],
-            style: [
-              styles[:body], styles[:body], styles[:body], styles[:body],
-              styles[:currency], styles[:body], styles[:body], styles[:body],
-              styles[:currency]
-            ]
-          )
+          sorted = group[:rows].sort_by { |r| [ r[:c_c].to_s, r[:material].to_s ] }
+          sorted.each do |r|
+            sheet.add_row(
+              [
+                r[:c_c],
+                r[:material],
+                r[:tipo],
+                r[:unidad_medida],
+                r[:precio_unitario].to_f,
+                r[:total_compra].to_f,
+                r[:total_salida].to_f,
+                r[:total_entrada].to_f,
+                r[:utilizado].to_f,
+                r[:costo].to_f
+              ],
+              style: [
+                styles[:body], styles[:body], styles[:body], styles[:body],
+                styles[:currency], styles[:body], styles[:body], styles[:body],
+                styles[:body], styles[:currency]
+              ]
+            )
+          end
+
+          finalize_sheet!(sheet, headers: headers, table_name: "Tabla_#{group[:moneda]}")
         end
-
-        finalize_sheet!(sheet, headers: headers, table_name: "Tabla_Comparativo")
       end
 
       package.to_stream.read
