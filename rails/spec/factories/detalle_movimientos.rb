@@ -3,6 +3,7 @@ FactoryBot.define do
     association :movimiento
     association :articulo
     cantidad { 1 }
+    precio_unitario { nil }
     stock_punta { nil }
   end
 end

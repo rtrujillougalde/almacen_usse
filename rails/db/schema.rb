@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_07_102400) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_07_102700) do
   create_table "articulos", primary_key: "id_articulo", id: :integer, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.column "almacen", "enum('oficina','uno','dos','tres','dormitorios')"
     t.float "cantidad_en_stock"
@@ -32,6 +32,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_102400) do
     t.integer "id_articulo", null: false
     t.integer "id_movimiento", null: false
     t.integer "id_punta"
+    t.decimal "precio_unitario", precision: 12, scale: 2
     t.index ["id_articulo"], name: "detalle_movimientos_ibfk_3_idx"
     t.index ["id_movimiento"], name: "index_detalle_movimientos_on_id_movimiento"
     t.index ["id_punta"], name: "index_detalle_movimientos_on_id_punta"

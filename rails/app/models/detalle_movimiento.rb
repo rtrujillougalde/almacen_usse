@@ -8,4 +8,5 @@ class DetalleMovimiento < ApplicationRecord
   belongs_to :stock_punta, foreign_key: :id_punta, primary_key: :id_punta, optional: true, inverse_of: :detalle_movimientos
 
   validates :cantidad, presence: true, numericality: { greater_than: 0 }
+  validates :precio_unitario, presence: true, numericality: { greater_than: 0 }, if: -> { movimiento&.compra? }
 end
