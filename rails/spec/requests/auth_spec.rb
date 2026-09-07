@@ -32,6 +32,9 @@ RSpec.describe "Authentication and roles", type: :request do
       get entradas_path
       expect(response).to have_http_status(:ok)
 
+      get compras_path
+      expect(response).to have_http_status(:ok)
+
       get reportes_path
       expect(response).to have_http_status(:ok)
     end
@@ -40,10 +43,12 @@ RSpec.describe "Authentication and roles", type: :request do
   describe "operador access" do
     before { sign_in_as(:operador) }
 
-    it "allows inventario entradas salidas" do
+    it "allows inventario entradas compras salidas" do
       get inventario_path
       expect(response).to have_http_status(:ok)
       get entradas_path
+      expect(response).to have_http_status(:ok)
+      get compras_path
       expect(response).to have_http_status(:ok)
       get salidas_path
       expect(response).to have_http_status(:ok)
@@ -71,8 +76,11 @@ RSpec.describe "Authentication and roles", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
-    it "denies entradas salidas proveedores" do
+    it "denies entradas compras salidas proveedores" do
       get entradas_path
+      expect(response).to redirect_to(inventario_path)
+
+      get compras_path
       expect(response).to redirect_to(inventario_path)
 
       get salidas_path

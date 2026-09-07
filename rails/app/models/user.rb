@@ -9,14 +9,15 @@ class User < ApplicationRecord
   }, validate: true
 
   ROLE_PAGES = {
-    "admin" => %w[inventario entradas salidas proyectos reportes proveedores],
-    "operador" => %w[inventario entradas salidas],
+    "admin" => %w[inventario entradas compras salidas proyectos reportes proveedores],
+    "operador" => %w[inventario entradas compras salidas],
     "consulta" => %w[inventario reportes]
   }.freeze
 
   PAGE_PATHS = {
     "inventario" => :inventario_path,
     "entradas" => :entradas_path,
+    "compras" => :compras_path,
     "salidas" => :salidas_path,
     "proyectos" => :proyectos_path,
     "reportes" => :reportes_path,

@@ -1,0 +1,118 @@
+require "rails_helper"
+
+RSpec.describe "Compras", type: :request do
+  let!(:proyecto) { create(:proyecto) }
+  let!(:proveedor) { create(:proveedor) }
+
+  def start_compra
+    post start_compras_path
+  end
+
+  def add_new_item(precio_unitario: "7.5")
+    post add_item_compras_path, params: {
+      id_proyecto: proyecto.id_proyecto,
+      moneda: "MXN",
+      id_proveedor: proveedor.id_proveedor,
+      responsable: "Op",
+      id_articulo: "__new__",
+      nombre: "Item Compra",
+      tipo: "material",
+      cantidad: "4",
+      unidad_medida: "pza",
+      categoria: "general",
+      precio_unitario: precio_unitario
+    }
+  end
+
+  it "allows operador to open compras" do
+    sign_in_as(:operador)
+    get compras_path
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "allows operador to register a compra via cart flow" do
+    sign_in_as(:operador)
+    start_compra
+    expect(response).to redirect_to(compras_path)
+
+    expect { add_new_item }.to change { session[:compra_cart]["items"].size }.by(1)
+    expect(response).to redirect_to(compras_path)
+
+    post finalize_compras_path, params: {
+      id_proyecto: proyecto.id_proyecto,
+      moneda: "MXN",
+      id_proveedor: proveedor.id_proveedor,
+      responsable: "Op"
+    }
+    expect(response).to redirect_to(compras_path)
+    expect(session[:compra_cart]["pending_confirmation"]).to eq(true)
+
+    expect { post compras_path }.to change(Movimiento, :count).by(1)
+    expect(response).to redirect_to(compras_path)
+
+    movimiento = Movimiento.last
+    expect(movimiento.compra?).to eq(true)
+    expect(movimiento.moneda).to eq("MXN")
+    expect(movimiento.proveedor).to eq(proveedor)
+
+    articulo = Articulo.find_by!(nombre: "Item Compra")
+    expect(articulo.precio_unitario).to eq(7.5)
+    expect(articulo.cantidad_en_stock).to eq(4)
+    expect(movimiento.detalle_movimientos.first.precio_unitario).to eq(7.5)
+  end
+
+  it "updates precio_unitario on an existing article" do
+    sign_in_as(:operador)
+    articulo = create(:articulo, cantidad_en_stock: 5, precio_unitario: 100)
+
+    start_compra
+    post add_item_compras_path, params: {
+      id_proyecto: proyecto.id_proyecto,
+      moneda: "USD",
+      id_proveedor: proveedor.id_proveedor,
+      responsable: "Op",
+      id_articulo: articulo.id_articulo,
+      cantidad: "3",
+      precio_unitario: "12.25"
+    }
+    post finalize_compras_path, params: {
+      id_proyecto: proyecto.id_proyecto,
+      moneda: "USD",
+      id_proveedor: proveedor.id_proveedor,
+      responsable: "Op"
+    }
+    post compras_path
+
+    articulo.reload
+    expect(articulo.cantidad_en_stock).to eq(8)
+    expect(articulo.precio_unitario).to eq(12.25)
+    expect(Movimiento.last.detalle_movimientos.first.precio_unitario).to eq(12.25)
+  end
+
+  it "does not add an item without precio_unitario" do
+    sign_in_as(:operador)
+    start_compra
+
+    expect { add_new_item(precio_unitario: "") }.not_to change { session[:compra_cart]["items"].size }
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Precio unitario es obligatorio")
+  end
+
+  it "returns a specific error and does not persist when header fields are missing" do
+    sign_in_as(:operador)
+    start_compra
+    add_new_item
+
+    expect {
+      post finalize_compras_path, params: { responsable: "Op" }
+    }.not_to change(Movimiento, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Proyecto es obligatorio")
+  end
+
+  it "forbids consulta from compras" do
+    sign_in_as(:consulta)
+    get compras_path
+    expect(response).to redirect_to(inventario_path)
+  end
+end
