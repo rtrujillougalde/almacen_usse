@@ -12,7 +12,8 @@ module ApplicationHelper
   def generate_button_label(kind)
     case kind.to_s
     when "salida" then "Generar Reporte de Salidas"
-    when "comparativo" then "Generar Reporte Comparativo"
+    when "compra" then "Generar Reporte de Compras"
+    when "utilizado" then "Generar Reporte de Material Utilizado"
     else "Generar Reporte de Entradas"
     end
   end

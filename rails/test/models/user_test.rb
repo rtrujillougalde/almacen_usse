@@ -5,6 +5,7 @@ class UserTest < ActiveSupport::TestCase
     user = users(:admin)
     assert user.can_access?("proveedores")
     assert user.can_access?("entradas")
+    assert user.can_access?("compras")
   end
 
   test "consulta cannot access entradas or proveedores" do

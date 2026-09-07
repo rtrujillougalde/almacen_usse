@@ -1,12 +1,13 @@
 <% movement_label = case @kind
                     when "entrada" then "entrada"
                     when "salida" then "salida"
+                    when "compra" then "compra"
                     else "material/herramienta"
                     end %>
 
 <div class="alert alert-success">
-  <% if @kind == "comparativo" %>
-    Se encontraron <%= @rows.size %> materiales/herramientas para comparar
+  <% if @kind == "utilizado" %>
+    Se encontraron <%= @preview_groups.sum { |g| g[:rows].size } %> materiales/herramientas
   <% else %>
     Se encontraron <%= @rows.size %> registros de <%= movement_label %>
   <% end %>
@@ -23,37 +24,69 @@
         data: { turbo: false } %>
 </div>
 
-<% if @kind == "comparativo" && @total_costo %>
-  <div class="card border-0 shadow-sm mb-4" style="max-width: 22rem;">
+<% if @kind == "utilizado" %>
+  <% @preview_groups.each do |group| %>
+    <div class="card border-0 shadow-sm mb-4" style="max-width: 22rem;">
+      <div class="card-body">
+        <div class="small text-secondary">Costo Total (<%= group[:moneda] %>)</div>
+        <div class="fs-4 fw-semibold">$<%= number_with_precision(group[:total_costo], precision: 2, delimiter: ",") %></div>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<% if @kind == "utilizado" %>
+  <% @preview_groups.each do |group| %>
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Moneda: <%= group[:moneda] %></h2>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <% group[:rows].first.keys.each do |header| %>
+                  <th><%= header %></th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <% group[:rows].each do |row| %>
+                <tr>
+                  <% row.each_value do |value| %>
+                    <td><%= value %></td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% else %>
+  <div class="card shadow-sm border-0">
     <div class="card-body">
-      <div class="small text-secondary">Costo Total de material usado</div>
-      <div class="fs-4 fw-semibold">$<%= number_with_precision(@total_costo, precision: 2, delimiter: ",") %></div>
+      <h2 class="h5 mb-3">Vista previa de datos</h2>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <% @preview_rows.first.keys.each do |header| %>
+                <th><%= header %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% @preview_rows.each do |row| %>
+              <tr>
+                <% row.each_value do |value| %>
+                  <td><%= value %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 <% end %>
-
-<div class="card shadow-sm border-0">
-  <div class="card-body">
-    <h2 class="h5 mb-3">Vista previa de datos</h2>
-    <div class="table-responsive">
-      <table class="table table-sm table-striped table-bordered align-middle">
-        <thead class="table-light">
-          <tr>
-            <% @preview_rows.first.keys.each do |header| %>
-              <th><%= header %></th>
-            <% end %>
-          </tr>
-        </thead>
-        <tbody>
-          <% @preview_rows.each do |row| %>
-            <tr>
-              <% row.each_value do |value| %>
-                <td><%= value %></td>
-              <% end %>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>

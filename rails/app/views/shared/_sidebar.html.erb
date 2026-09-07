@@ -16,6 +16,10 @@
       <%= link_to "Entradas", entradas_path,
             class: "nav-link #{'active' if controller_name == 'entradas'}" %>
     <% end %>
+    <% if nav_pages_for_current_user.include?("compras") %>
+      <%= link_to "Compras", compras_path,
+            class: "nav-link #{'active' if controller_name == 'compras'}" %>
+    <% end %>
     <% if nav_pages_for_current_user.include?("salidas") %>
       <%= link_to "Salidas", salidas_path,
             class: "nav-link #{'active' if controller_name == 'salidas'}" %>

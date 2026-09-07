@@ -57,16 +57,59 @@ RSpec.describe "Reportes generate flow", type: :request do
       expect(response.body).to include("Generar Reporte de Salidas")
     end
 
-    it "generates comparativo preview with costo total metric" do
+    it "generates compras preview with proveedor and moneda" do
       sign_in_as(:admin)
+      proveedor = create(:proveedor, nombre: "Aceros Norte")
+      compra = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "MXN")
+      create(:detalle_movimiento, movimiento: compra, articulo: articulo, cantidad: 3, precio_unitario: 11)
 
-      post reportes_path, params: { c_c: 9999, kind: "comparativo" }
+      post reportes_path, params: { c_c: 9999, kind: "compra" }
+      expect(response).to redirect_to(reportes_path(c_c: "9999", kind: "compra", generated: "1"))
       follow_redirect!
 
-      expect(response.body).to include("Se encontraron 1 materiales/herramientas para comparar")
-      expect(response.body).to include("Costo Total de material usado")
+      expect(response.body).to include("Se encontraron 1 registros de compra")
       expect(response.body).to include("Reporte Item")
-      expect(response.body).to include("Generar Reporte Comparativo")
+      expect(response.body).to include("Aceros Norte")
+      expect(response.body).to include("MXN")
+      expect(response.body).to include("Proveedor")
+      expect(response.body).to include("Moneda")
+      expect(response.body).to include("Precio Unit.")
+      expect(response.body).to include("$11.00")
+      expect(response.body).to include("Generar Reporte de Compras")
+    end
+
+    it "generates material utilizado preview with costo total metric" do
+      sign_in_as(:admin)
+      compra = create(:movimiento, :compra, proyecto: proyecto)
+      create(:detalle_movimiento, movimiento: compra, articulo: articulo, cantidad: 4, precio_unitario: 11)
+
+      post reportes_path, params: { c_c: 9999, kind: "utilizado" }
+      follow_redirect!
+
+      expect(response.body).to include("Se encontraron 1 materiales/herramientas")
+      expect(response.body).to include("Costo Total")
+      expect(response.body).to include("MXN")
+      expect(response.body).to include("Reporte Item")
+      expect(response.body).to include("Compras")
+      expect(response.body).to include("Utilizado")
+      expect(response.body).to include("Generar Reporte de Material Utilizado")
+      expect(response.body).not_to include("Comparativo")
+    end
+
+    it "shows a separate preview table per moneda" do
+      sign_in_as(:admin)
+      mxn = create(:movimiento, :compra, proyecto: proyecto, moneda: "MXN")
+      create(:detalle_movimiento, movimiento: mxn, articulo: articulo, cantidad: 4, precio_unitario: 11)
+      usd = create(:movimiento, :compra, proyecto: proyecto, moneda: "USD")
+      create(:detalle_movimiento, movimiento: usd, articulo: articulo, cantidad: 6, precio_unitario: 11)
+
+      post reportes_path, params: { c_c: 9999, kind: "utilizado" }
+      follow_redirect!
+
+      expect(response.body).to include("Moneda: MXN")
+      expect(response.body).to include("Moneda: USD")
+      expect(response.body).to include("Costo Total (MXN)")
+      expect(response.body).to include("Costo Total (USD)")
     end
 
     it "allows consulta to generate reports" do
@@ -159,18 +202,18 @@ RSpec.describe "Reportes generate flow", type: :request do
       expect(xlsx_rows(response.body)[1][2]).to eq("Reporte Item")
     end
 
-    it "downloads comparativo files after generate" do
+    it "downloads material utilizado files after generate" do
       sign_in_as(:consulta)
 
-      post reportes_path, params: { c_c: 9999, kind: "comparativo" }
+      post reportes_path, params: { c_c: 9999, kind: "utilizado" }
       follow_redirect!
 
-      get download_reportes_path, params: { c_c: 9999, kind: "comparativo", file_format: "pdf" }
+      get download_reportes_path, params: { c_c: 9999, kind: "utilizado", file_format: "pdf" }
       expect(response.body).to start_with("%PDF")
-      expect(pdf_text(response.body)).to include("Reporte Comparativo")
+      expect(pdf_text(response.body)).to include("Reporte de Material Utilizado")
 
-      get download_reportes_path, params: { c_c: 9999, kind: "comparativo", file_format: "xlsx" }
-      expect(xlsx_sheet_names(response.body)).to eq([ "Comparativo" ])
+      get download_reportes_path, params: { c_c: 9999, kind: "utilizado", file_format: "xlsx" }
+      expect(xlsx_sheet_names(response.body)).to eq([ "MXN" ])
     end
   end
 end
@@ -216,18 +259,40 @@ RSpec.describe "Reportes downloads", type: :request do
       expect(pdf_text(response.body)).to include("Reporte de Salidas de Almacén")
     end
 
-    it "returns a real PDF for comparativo" do
+    it "returns a real PDF for compras with proveedor and moneda" do
       sign_in_as(:admin)
+      proveedor = create(:proveedor, nombre: "Aceros Norte")
+      compra = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "USD")
+      create(:detalle_movimiento, movimiento: compra, articulo: articulo, cantidad: 3, precio_unitario: 11)
 
-      get download_reportes_path, params: { c_c: 9999, kind: "comparativo", file_format: "pdf" }
+      get download_reportes_path, params: { c_c: 9999, kind: "compra", file_format: "pdf" }
 
       expect(response).to have_http_status(:ok)
+      expect(response.headers["Content-Disposition"]).to include("reporte_compra_cc_9999.pdf")
+      text = pdf_text(response.body)
+      expect(text).to include("Reporte de Compras de Almacén")
+      expect(text).to include("Reporte Item")
+      expect(text).to include("Aceros Norte")
+      expect(text).to include("USD")
+      expect(text).to include("Precio") # "Precio Unit." wraps in PDF layout
+      expect(text).to include("Unit.")
+      expect(text).to include("$11.00")
+    end
+
+    it "returns a real PDF for material utilizado" do
+      sign_in_as(:admin)
+
+      get download_reportes_path, params: { c_c: 9999, kind: "utilizado", file_format: "pdf" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Content-Disposition"]).to include("reporte_utilizado_cc_9999.pdf")
       expect(response.body).to start_with("%PDF")
 
       text = pdf_text(response.body)
-      expect(text).to include("Reporte Comparativo: Entradas vs Salidas")
+      expect(text).to include("Reporte de Material Utilizado")
       expect(text).to include("Reporte Item")
-      expect(text).to include("Costo Total:")
+      expect(text).to include("Moneda: MXN")
+      expect(text).to include("Costo Total")
     end
   end
 
@@ -253,20 +318,49 @@ RSpec.describe "Reportes downloads", type: :request do
       expect(rows[1].length).to eq(5)
     end
 
-    it "returns a real XLSX for comparativo with expected columns" do
+    it "returns a real XLSX for compras with proveedor and moneda" do
       sign_in_as(:admin)
+      proveedor = create(:proveedor, nombre: "Aceros Norte")
+      compra = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "MXN")
+      create(:detalle_movimiento, movimiento: compra, articulo: articulo, cantidad: 3, precio_unitario: 11)
 
-      get download_reportes_path, params: { c_c: 9999, kind: "comparativo", file_format: "xlsx" }
+      get download_reportes_path, params: { c_c: 9999, kind: "compra", file_format: "xlsx" }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body[0, 2]).to eq("PK")
-      expect(xlsx_sheet_names(response.body)).to eq([ "Comparativo" ])
-
+      expect(response.headers["Content-Disposition"]).to include("reporte_compra_cc_9999.xlsx")
+      expect(xlsx_sheet_names(response.body)).to eq([ "Compras" ])
       rows = xlsx_rows(response.body)
-      expect(rows.first).to include("Entradas", "Salidas", "Usado", "Costo Mat. Usado")
+      expect(rows.first).to eq(
+        [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad", "Precio Unit.", "Proveedor", "Moneda" ]
+      )
+      expect(rows[1][2]).to eq("Reporte Item")
+      expect(rows[1][5].to_f).to eq(11.0)
+      expect(rows[1][6]).to eq("Aceros Norte")
+      expect(rows[1][7]).to eq("MXN")
+    end
+
+    it "returns a real XLSX for material utilizado with expected columns" do
+      sign_in_as(:admin)
+
+      get download_reportes_path, params: { c_c: 9999, kind: "utilizado", file_format: "xlsx" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Content-Disposition"]).to include("reporte_utilizado_cc_9999.xlsx")
+      expect(response.body[0, 2]).to eq("PK")
+      expect(xlsx_sheet_names(response.body)).to eq([ "MXN" ])
+
+      rows = xlsx_rows(response.body, sheet: "MXN")
+      expect(rows.first).to eq(
+        [
+          "C.C", "Material", "Tipo", "Unidad", "Precio Unit.",
+          "Compras", "Salidas", "Entradas", "Utilizado", "Costo"
+        ]
+      )
       expect(rows[1][1]).to eq("Reporte Item")
-      expect(rows[1][5].to_f).to eq(2.0)
+      expect(rows[1][5].to_f).to eq(0.0)
       expect(rows[1][6].to_f).to eq(1.0)
+      expect(rows[1][7].to_f).to eq(2.0)
+      expect(rows[1][8].to_f).to eq(-1.0)
     end
   end
 end

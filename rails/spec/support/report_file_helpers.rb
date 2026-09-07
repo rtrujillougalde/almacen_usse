@@ -9,12 +9,12 @@ module ReportFileHelpers
     PDF::Reader.new(StringIO.new(binary)).pages.map(&:text).join("\n")
   end
 
-  # Returns [headers, *data_rows] as arrays of strings from the first worksheet.
-  def xlsx_rows(binary)
+  # Returns [headers, *data_rows] as arrays of strings from a worksheet.
+  def xlsx_rows(binary, sheet: nil)
     rows = nil
     with_xlsx(binary) do |zip|
       shared = parse_shared_strings(zip)
-      sheet_entry = zip.glob("xl/worksheets/sheet*.xml").min_by(&:name)
+      sheet_entry = xlsx_sheet_entry(zip, sheet)
       raise "No worksheet found in XLSX" unless sheet_entry
 
       doc = Nokogiri::XML(read_zip_entry(sheet_entry))
@@ -27,13 +27,25 @@ module ReportFileHelpers
     rows
   end
 
+  def xlsx_sheet_entry(zip, sheet)
+    return zip.glob("xl/worksheets/sheet*.xml").min_by(&:name) if sheet.blank?
+
+    names = xlsx_sheet_names_from(zip)
+    index = names.index(sheet)
+    raise "Sheet #{sheet.inspect} not found (#{names.join(', ')})" unless index
+
+    zip.find_entry("xl/worksheets/sheet#{index + 1}.xml")
+  end
+
+  def xlsx_sheet_names_from(zip)
+    workbook = Nokogiri::XML(read_zip_bytes(zip, "xl/workbook.xml"))
+    workbook.remove_namespaces!
+    workbook.xpath("//sheets/sheet").map { |node| node["name"] }
+  end
+
   def xlsx_sheet_names(binary)
     names = nil
-    with_xlsx(binary) do |zip|
-      workbook = Nokogiri::XML(read_zip_bytes(zip, "xl/workbook.xml"))
-      workbook.remove_namespaces!
-      names = workbook.xpath("//sheets/sheet").map { |node| node["name"] }
-    end
+    with_xlsx(binary) { |zip| names = xlsx_sheet_names_from(zip) }
     names
   end
 

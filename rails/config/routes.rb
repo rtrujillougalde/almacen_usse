@@ -24,6 +24,17 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :compras, only: %i[index create] do
+    collection do
+      post :start
+      post :add_item
+      delete :remove_item
+      delete :cancel
+      post :finalize
+      delete :dismiss_confirmation
+    end
+  end
+
   resources :salidas, only: %i[index create] do
     collection do
       post :start

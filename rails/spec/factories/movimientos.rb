@@ -9,5 +9,12 @@ FactoryBot.define do
     trait :salida do
       tipo { :salida }
     end
+
+    trait :compra do
+      tipo { :compra }
+      moneda { "MXN" }
+      association :proveedor
+    end
   end
 end
+

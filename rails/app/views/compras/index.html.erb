@@ -1,0 +1,226 @@
+<%= render "shared/page_header", title: "Compras", subtitle: "Registro de compras de materiales y herramientas" %>
+
+<div class="mb-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Movimientos de Compra Recientes</h2>
+      <%= render "shared/recent_movements", recent: @recent, show_precio: true %>
+    </div>
+  </div>
+</div>
+
+<% if @pending_confirmation %>
+  <div class="card shadow-sm border-0 border-warning mb-4">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-3">Confirmar compra</h2>
+      <p class="text-secondary">Revisa los ítems que se registrarán:</p>
+      <ul class="mb-4">
+        <% @cart_items.each_with_index do |item, idx| %>
+          <li>
+            <% if item["es_cable"] %>
+              <%= idx + 1 %>. <%= item["nombre_item"] %> - <%= item["nombre_punta"] %> -
+              Longitud: <%= item["longitud"] %> m<%= item["color"].present? ? " - Color: #{item["color"]}" : "" %>
+            <% else %>
+              <%= idx + 1 %>. <%= item["nombre_item"] %> - Cantidad: <%= item["cantidad"] %>
+            <% end %>
+            - Precio unitario: <%= number_to_currency(item["precio_unitario"], unit: "$") %>
+          </li>
+        <% end %>
+      </ul>
+      <div class="d-flex gap-2">
+        <%= button_to "Aceptar", compras_path, method: :post, class: "btn btn-primary" %>
+        <%= button_to "Cancelar", dismiss_confirmation_compras_path, method: :delete, class: "btn btn-outline-secondary" %>
+      </div>
+    </div>
+  </div>
+<% elsif @form_open %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-3">Nueva Compra de Inventario</h2>
+
+      <%= form_with url: add_item_compras_path, method: :post, class: "mb-0" do %>
+        <div class="mb-4" data-controller="project-selector">
+          <h3 class="h6">Información del Proyecto</h3>
+          <label class="form-label">Selecciona un proyecto:</label>
+          <select name="id_proyecto" class="form-select mb-3"
+                  data-project-selector-target="select"
+                  data-action="change->project-selector#refresh">
+            <option value="">Selecciona...</option>
+            <% @proyectos.each do |p| %>
+              <option value="<%= p.id_proyecto %>"
+                      data-cc="<%= p.c_c %>"
+                      data-obra="<%= p.nombre_obra %>"
+                      <%= "selected" if @cart["id_proyecto"].to_s == p.id_proyecto.to_s %>>
+                <%= p.nombre_obra_with_cc %>
+              </option>
+            <% end %>
+          </select>
+          <div class="row g-3 mb-3 d-none" data-project-selector-target="metrics">
+            <div class="col-sm-6">
+              <div class="border rounded p-3 bg-light">
+                <div class="small text-secondary">Centro de Costo</div>
+                <div class="fs-5 fw-semibold" data-project-selector-target="cc"></div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="border rounded p-3 bg-light">
+                <div class="small text-secondary">Nombre Obra</div>
+                <div class="fs-5 fw-semibold" data-project-selector-target="obra"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Moneda</label>
+            <%= select_tag :moneda,
+                  options_for_select(Movimiento::MONEDAS, @cart["moneda"]),
+                  include_blank: "Selecciona...",
+                  class: "form-select" %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Proveedor</label>
+            <%= select_tag :id_proveedor,
+                  options_from_collection_for_select(@proveedores, :id_proveedor, :nombre, @cart["id_proveedor"]),
+                  include_blank: "Selecciona...",
+                  class: "form-select" %>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Responsable de la compra</label>
+          <%= text_field_tag :responsable, @cart["responsable"], class: "form-control" %>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Observaciones (opcional)</label>
+          <%= text_area_tag :observaciones, @cart["observaciones"], class: "form-control", rows: 2 %>
+        </div>
+
+        <hr>
+
+        <% if @cart_items.any? %>
+          <h3 class="h6">Items agregados a esta compra:</h3>
+          <ul class="list-group mb-3">
+            <% @cart_items.each_with_index do |item, idx| %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                  <% if item["es_cable"] %>
+                    <%= idx + 1 %>. <%= item["nombre_item"] %> - <%= item["nombre_punta"] %> -
+                    Longitud: <%= item["longitud"] %> m - Color: <%= item["color"].presence || "N/A" %>
+                  <% else %>
+                    <%= idx + 1 %>. <%= item["nombre_item"] %> - Cantidad: <%= item["cantidad"] %>
+                  <% end %>
+                  - Precio unitario: <%= number_to_currency(item["precio_unitario"], unit: "$") %>
+                </span>
+                <%= link_to "🗑", remove_item_compras_path(index: idx),
+                      data: { turbo_method: :delete },
+                      class: "btn btn-sm btn-outline-danger" %>
+              </li>
+            <% end %>
+          </ul>
+          <hr>
+        <% end %>
+
+        <div data-controller="entrada-item-form">
+          <h3 class="h6">Agregar item a la compra</h3>
+          <div class="mb-3">
+            <label class="form-label">Selecciona un item existente o crea uno nuevo:</label>
+            <select name="id_articulo" class="form-select"
+                    data-entrada-item-form-target="articleSelect"
+                    data-action="change->entrada-item-form#refresh">
+              <option value="">Selecciona...</option>
+              <option value="__new__">Otro (escribir nuevo)</option>
+              <% @articulos.each do |a| %>
+                <option value="<%= a.id_articulo %>" data-es-cable="<%= a.es_cable? %>">
+                  <%= a.nombre %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="newFields">
+            <h4 class="h6">Detalles del nuevo item</h4>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">Nombre del nuevo item</label>
+                <%= text_field_tag :nombre, nil, class: "form-control", disabled: true %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Número de catálogo</label>
+                <%= text_field_tag :num_catalogo, nil, class: "form-control", disabled: true %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Tipo de item</label>
+                <%= select_tag :tipo, options_for_select(%w[material herramienta]), class: "form-select", disabled: true %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Unidad de medida</label>
+                <%= select_tag :unidad_medida, options_for_select(ApplicationHelper::UNIDADES, "pza"), class: "form-select", disabled: true %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Stock mínimo para alertas</label>
+                <%= number_field_tag :stock_minimo, 0, class: "form-control", step: :any, min: 0, disabled: true %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Categoría</label>
+                <%= select_tag :categoria, options_for_select(Articulo::CATEGORIAS.sort), class: "form-select", include_blank: true, disabled: true %>
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <div class="form-check mb-2">
+                  <%= check_box_tag :es_cable, "1", false,
+                        class: "form-check-input",
+                        id: "compra_es_cable",
+                        disabled: true,
+                        data: {
+                          entrada_item_form_target: "esCableCheckbox",
+                          action: "change->entrada-item-form#refresh"
+                        } %>
+                  <label class="form-check-label" for="compra_es_cable">¿Es un cable/tramo/carrete?</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="cableFields">
+            <h4 class="h6">Detalles del cable</h4>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">Nombre de la punta/carrete/tramo</label>
+                <%= text_field_tag :nombre_punta, nil, class: "form-control", placeholder: "e.g., Punta Cobre #2", disabled: true %>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Longitud (metros)</label>
+                <%= number_field_tag :longitud, 0, class: "form-control", step: 0.1, min: 0, disabled: true %>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Color (opcional)</label>
+                <%= text_field_tag :color, nil, class: "form-control", disabled: true %>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3 d-none" data-entrada-item-form-target="quantityFields">
+            <label class="form-label">Cantidad a agregar</label>
+            <%= number_field_tag :cantidad, 0, class: "form-control", step: :any, min: 0, disabled: true %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Precio unitario</label>
+            <%= number_field_tag :precio_unitario, nil, class: "form-control", step: 0.01, min: 0 %>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <%= submit_tag "Agregar item", class: "btn btn-outline-primary" %>
+          <%= submit_tag "Finalizar compra", formaction: finalize_compras_path, class: "btn btn-primary" %>
+          <%= link_to "Cancelar", cancel_compras_path, data: { turbo_method: :delete }, class: "btn btn-outline-danger" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% else %>
+  <div class="mb-4">
+    <%= button_to "Iniciar nueva compra", start_compras_path, method: :post, class: "btn btn-primary btn-lg" %>
+  </div>
+<% end %>

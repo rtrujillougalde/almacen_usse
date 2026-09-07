@@ -53,40 +53,94 @@ RSpec.describe Reportes::PdfGenerator do
       expect(text).not_to include("Precio Unit.")
       expect(text).not_to include("TOTAL GENERAL")
     end
+
+    it "creates a compras PDF with proveedor and moneda" do
+      proveedor = create(:proveedor, nombre: "Aceros Norte")
+      mov = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "MXN")
+      create(:detalle_movimiento, movimiento: mov, articulo: articulo, cantidad: 4, precio_unitario: 9)
+      rows = Reportes::Query.movement_rows(cc: 111, movement_type: "compra").to_a
+
+      pdf = described_class.movement(movement_type: "compra", cc: 111, rows: rows)
+      text = pdf_text(pdf)
+
+      expect(pdf).to start_with("%PDF")
+      expect(text).to include("Reporte de Compras de Almacén")
+      expect(text).to include("Cable X")
+      expect(text).to include("Proveedor")
+      expect(text).to include("Moneda")
+      expect(text).to include("Precio") # "Precio Unit." wraps in PDF layout
+      expect(text).to include("Unit.")
+      expect(text).to include("Aceros Norte")
+      expect(text).to include("MXN")
+      expect(text).to include("$9.00")
+    end
   end
 
-  describe ".comparativo" do
-    it "creates a valid PDF with comparativo columns and costo total" do
-      rows = [ {
-        c_c: 111,
-        material: "Cemento",
-        tipo: "material",
-        unidad_medida: "pza",
-        precio_unitario: 10,
-        total_entrada: 5,
-        total_salida: 8,
-        usado: 3,
-        costo_material_usado: 30
+  describe ".utilizado" do
+    it "creates a valid PDF with utilizado columns and costo total" do
+      groups = [ {
+        moneda: "MXN",
+        total_costo: 70,
+        rows: [ {
+          c_c: 111,
+          material: "Cemento",
+          tipo: "material",
+          unidad_medida: "pza",
+          precio_unitario: 10,
+          total_compra: 4,
+          total_salida: 8,
+          total_entrada: 5,
+          utilizado: 7,
+          costo: 70
+        } ]
       } ]
 
-      pdf = described_class.comparativo(cc: 111, rows: rows)
+      pdf = described_class.utilizado(cc: 111, groups: groups)
       text = pdf_text(pdf)
 
       expect(pdf).to start_with("%PDF")
       expect(pdf).to include("%%EOF")
-      expect(text).to include("Reporte Comparativo: Entradas vs Salidas")
-      expect(text).to include("Material")
-      expect(text).to include("Tipo")
+      expect(text).to include("Reporte de Material Utilizado")
+      expect(text).to include("MXN")
+      expect(text).to include("Compras")
       expect(text).to include("Salidas")
       expect(text).to include("Entradas")
-      expect(text).to include("Usado")
-      expect(text).to include("Costo Mat.") # wraps before "Usado" in PDF layout
+      expect(text).to include("Utilizado")
       expect(text).to include("Cemento")
-      expect(text).to include("material")
       expect(text).to include("pza")
       expect(text).to include("$10.00")
-      expect(text).to include("Costo Total:")
+      expect(text).to include("Costo Total")
+      expect(text).to include("$70.00")
+    end
+
+    it "renders a separate table and costo total per moneda" do
+      groups = [
+        {
+          moneda: "MXN",
+          total_costo: 30,
+          rows: [ {
+            c_c: 111, material: "Cemento", tipo: "material", unidad_medida: "pza",
+            precio_unitario: 10, total_compra: 3, total_salida: 0, total_entrada: 0,
+            utilizado: 3, costo: 30
+          } ]
+        },
+        {
+          moneda: "USD",
+          total_costo: 60,
+          rows: [ {
+            c_c: 111, material: "Cemento", tipo: "material", unidad_medida: "pza",
+            precio_unitario: 10, total_compra: 6, total_salida: 0, total_entrada: 0,
+            utilizado: 6, costo: 60
+          } ]
+        }
+      ]
+
+      text = pdf_text(described_class.utilizado(cc: 111, groups: groups))
+      expect(text).to include("MXN")
+      expect(text).to include("USD")
       expect(text).to include("$30.00")
+      expect(text).to include("$60.00")
+      expect(text).not_to include("$90.00")
     end
   end
 end
@@ -136,39 +190,83 @@ RSpec.describe Reportes::ExcelGenerator do
       expect(headers).to include("Material", "Cantidad", "Unidad")
       expect(headers).not_to include("Precio Unit.", "Total")
     end
+
+    it "creates a Compras sheet with proveedor and moneda" do
+      proveedor = create(:proveedor, nombre: "Aceros Norte")
+      mov = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "USD")
+      create(:detalle_movimiento, movimiento: mov, articulo: articulo, cantidad: 2, precio_unitario: 8)
+      rows = Reportes::Query.movement_rows(cc: 222, movement_type: "compra").to_a
+
+      xlsx = described_class.movement(movement_type: "compra", rows: rows)
+      table = xlsx_rows(xlsx)
+
+      expect(xlsx_sheet_names(xlsx)).to eq([ "Compras" ])
+      expect(table.first).to eq(
+        [ "Fecha/Hora", "C.C", "Material", "Cantidad", "Unidad", "Precio Unit.", "Proveedor", "Moneda" ]
+      )
+      expect(table[1][2]).to eq("Pintura Azul")
+      expect(table[1][5].to_f).to eq(8.0)
+      expect(table[1][6]).to eq("Aceros Norte")
+      expect(table[1][7]).to eq("USD")
+    end
   end
 
-  describe ".comparativo" do
-    it "creates an XLSX with Comparativo sheet and Python column order" do
-      rows = [ {
-        c_c: 222,
-        material: "Pintura Azul",
-        tipo: "material",
-        unidad_medida: "lt",
-        precio_unitario: 4.5,
-        total_entrada: 10,
-        total_salida: 3,
-        usado: -7,
-        costo_material_usado: -31.5
-      } ]
+  describe ".utilizado" do
+    it "creates an XLSX sheet per moneda with expected columns" do
+      groups = [
+        {
+          moneda: "MXN",
+          total_costo: -22.5,
+          rows: [ {
+            c_c: 222,
+            material: "Pintura Azul",
+            tipo: "material",
+            unidad_medida: "lt",
+            precio_unitario: 4.5,
+            total_compra: 2,
+            total_salida: 3,
+            total_entrada: 10,
+            utilizado: -5,
+            costo: -22.5
+          } ]
+        },
+        {
+          moneda: "USD",
+          total_costo: 8,
+          rows: [ {
+            c_c: 222,
+            material: "Pintura Azul",
+            tipo: "material",
+            unidad_medida: "lt",
+            precio_unitario: 4,
+            total_compra: 2,
+            total_salida: 0,
+            total_entrada: 0,
+            utilizado: 2,
+            costo: 8
+          } ]
+        }
+      ]
 
-      xlsx = described_class.comparativo(rows: rows)
+      xlsx = described_class.utilizado(groups: groups)
 
       expect(xlsx[0, 2]).to eq("PK")
-      expect(xlsx_sheet_names(xlsx)).to eq([ "Comparativo" ])
+      expect(xlsx_sheet_names(xlsx)).to eq([ "MXN", "USD" ])
 
-      table = xlsx_rows(xlsx)
+      table = xlsx_rows(xlsx, sheet: "MXN")
       expect(table.first).to eq(
         [
           "C.C", "Material", "Tipo", "Unidad", "Precio Unit.",
-          "Entradas", "Salidas", "Usado", "Costo Mat. Usado"
+          "Compras", "Salidas", "Entradas", "Utilizado", "Costo"
         ]
       )
       expect(table[1][0]).to eq("222")
       expect(table[1][1]).to eq("Pintura Azul")
-      expect(table[1][5].to_f).to eq(10.0)
+      expect(table[1][5].to_f).to eq(2.0)
       expect(table[1][6].to_f).to eq(3.0)
-      expect(table[1][8].to_f).to eq(-31.5)
+      expect(table[1][7].to_f).to eq(10.0)
+      expect(table[1][8].to_f).to eq(-5.0)
+      expect(table[1][9].to_f).to eq(-22.5)
     end
   end
 end
@@ -182,12 +280,12 @@ RSpec.describe Reportes::Filename do
   it "includes date range when present" do
     expect(
       described_class.build(
-        report_type: "comparativo",
+        report_type: "utilizado",
         date_from: "2026-01-01",
         date_to: "2026-09-04",
         cc: 55,
         extension: "xlsx"
       )
-    ).to eq("reporte_comparativo_01012026_a_04092026_cc_55.xlsx")
+    ).to eq("reporte_utilizado_01012026_a_04092026_cc_55.xlsx")
   end
 end

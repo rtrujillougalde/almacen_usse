@@ -37,15 +37,26 @@ module Reportes
       1.0 * INCH   # Unidad
     ].freeze
 
-    COL_WIDTHS_COMP = [
-      2.05 * INCH,
-      0.65 * INCH,
-      0.55 * INCH,
-      0.8 * INCH,
-      0.7 * INCH,
-      0.7 * INCH,
-      0.7 * INCH,
-      1.2 * INCH
+    COL_WIDTHS_COMPRA = [
+      0.95 * INCH, # Fecha/Hora
+      1.1 * INCH,  # Material
+      0.55 * INCH, # Cantidad
+      0.5 * INCH,  # Unidad
+      1.25 * INCH, # Precio Unit.
+      1.1 * INCH,  # Proveedor
+      0.75 * INCH  # Moneda
+    ].freeze
+
+    COL_WIDTHS_UTILIZADO = [
+      1.15 * INCH, # Material
+      0.7 * INCH,  # Tipo
+      0.45 * INCH, # Unidad
+      0.7 * INCH,  # Precio Unit.
+      0.85 * INCH, # Compras
+      0.7 * INCH,  # Salidas
+      0.85 * INCH, # Entradas
+      0.95 * INCH, # Utilizado
+      1.0 * INCH   # Costo
     ].freeze
 
     REPORTE_TABLE_TOTAL_WIDTH = COL_WIDTHS.sum

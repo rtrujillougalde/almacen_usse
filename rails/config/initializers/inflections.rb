@@ -10,6 +10,7 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "detalle_movimiento", "detalle_movimientos"
   inflect.irregular "stock_punta", "stock_puntas"
   inflect.irregular "entrada", "entradas"
+  inflect.irregular "compra", "compras"
   inflect.irregular "salida", "salidas"
   inflect.irregular "reporte", "reportes"
 end
