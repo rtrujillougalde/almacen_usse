@@ -16,21 +16,43 @@
 
 <% if @pending_confirmation %>
   <div class="card shadow-sm border-0 border-warning mb-4">
-    <div class="card-body p-4">
-      <h2 class="h5 mb-3">Confirmar entrada</h2>
+    <div class="card-header bg-white border-0 pt-3 pb-0">
+      <h2 class="h5 mb-0">Confirmar entrada</h2>
+    </div>
+    <div class="card-body">
       <p class="text-secondary">Revisa los ítems que se registrarán:</p>
-      <ul class="mb-4">
-        <% @cart_items.each_with_index do |item, idx| %>
-          <li>
-            <% if item["es_cable"] %>
-              <%= idx + 1 %>. <%= item["nombre_item"] %> - <%= item["nombre_punta"] %> -
-              Longitud: <%= item["longitud"] %> m<%= item["color"].present? ? " - Color: #{item["color"]}" : "" %>
-            <% else %>
-              <%= idx + 1 %>. <%= item["nombre_item"] %> - Cantidad: <%= item["cantidad"] %>
+      <div class="table-responsive mb-4">
+        <table class="table table-striped table-hover table-sm mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Artículo</th>
+              <th>Detalle</th>
+              <th class="text-end">Cant.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @cart_items.each_with_index do |item, idx| %>
+              <tr>
+                <td><%= idx + 1 %></td>
+                <td><%= item["nombre_item"] %></td>
+                <td class="text-secondary">
+                  <% if item["es_cable"] %>
+                    <%= item["nombre_punta"] %>
+                    · <%= item["longitud"] %> m
+                    <% if item["color"].present? %>
+                      · <%= item["color"] %>
+                    <% end %>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+                <td class="text-end"><%= item["es_cable"] ? item["longitud"] : item["cantidad"] %></td>
+              </tr>
             <% end %>
-          </li>
-        <% end %>
-      </ul>
+          </tbody>
+        </table>
+      </div>
       <div class="d-flex gap-2">
         <%= button_to "Aceptar", entradas_path, method: :post, class: "btn btn-primary" %>
         <%= button_to "Cancelar", dismiss_confirmation_entradas_path, method: :delete, class: "btn btn-outline-secondary" %>
@@ -39,164 +61,196 @@
   </div>
 <% elsif @form_open %>
   <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white border-0 pt-3 pb-0">
+      <h2 class="h5 mb-0">Nueva entrada de inventario</h2>
+    </div>
     <div class="card-body p-4">
-      <h2 class="h5 mb-3">Nueva Entrada de Inventario</h2>
-
       <%= form_with url: add_item_entradas_path, method: :post, class: "mb-0" do %>
-        <div class="mb-4" data-controller="project-selector">
-          <h3 class="h6">Información del Proyecto</h3>
-          <label class="form-label">Selecciona un proyecto:</label>
-          <select name="id_proyecto" class="form-select mb-3"
-                  data-project-selector-target="select"
-                  data-action="change->project-selector#refresh">
-            <option value="">Selecciona...</option>
-            <% @proyectos.each do |p| %>
-              <option value="<%= p.id_proyecto %>"
-                      data-cc="<%= p.c_c %>"
-                      data-obra="<%= p.nombre_obra %>"
-                      <%= "selected" if @cart["id_proyecto"].to_s == p.id_proyecto.to_s %>>
-                <%= p.nombre_obra_with_cc %>
-              </option>
-            <% end %>
-          </select>
-          <div class="row g-3 mb-3 d-none" data-project-selector-target="metrics">
-            <div class="col-sm-6">
-              <div class="border rounded p-3 bg-light">
-                <div class="small text-secondary">Centro de Costo</div>
-                <div class="fs-5 fw-semibold" data-project-selector-target="cc"></div>
-              </div>
-            </div>
-            <div class="col-sm-6">
-              <div class="border rounded p-3 bg-light">
-                <div class="small text-secondary">Nombre Obra</div>
-                <div class="fs-5 fw-semibold" data-project-selector-target="obra"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Responsable de la entrada</label>
-          <%= text_field_tag :responsable, @cart["responsable"], class: "form-control" %>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Observaciones (opcional)</label>
-          <%= text_area_tag :observaciones, @cart["observaciones"], class: "form-control", rows: 2 %>
-        </div>
-
-        <hr>
-
-        <% if @cart_items.any? %>
-          <h3 class="h6">Items agregados a esta entrada:</h3>
-          <ul class="list-group mb-3">
-            <% @cart_items.each_with_index do |item, idx| %>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>
-                  <% if item["es_cable"] %>
-                    <%= idx + 1 %>. <%= item["nombre_item"] %> - <%= item["nombre_punta"] %> -
-                    Longitud: <%= item["longitud"] %> m - Color: <%= item["color"].presence || "N/A" %>
-                  <% else %>
-                    <%= idx + 1 %>. <%= item["nombre_item"] %> - Cantidad: <%= item["cantidad"] %>
-                  <% end %>
-                </span>
-                <%= link_to "🗑", remove_item_entradas_path(index: idx),
-                      data: { turbo_method: :delete },
-                      class: "btn btn-sm btn-outline-danger" %>
-              </li>
-            <% end %>
-          </ul>
-          <hr>
-        <% end %>
-
-        <div data-controller="entrada-item-form">
-          <h3 class="h6">Agregar item a la entrada</h3>
-          <div class="mb-3">
-            <label class="form-label">Selecciona un item existente o crea uno nuevo:</label>
-            <select name="id_articulo" class="form-select"
-                    data-entrada-item-form-target="articleSelect"
-                    data-action="change->entrada-item-form#refresh">
+        <section class="mb-4">
+          <h3 class="h6 mb-3">
+            <span class="badge badge-usse me-1">1</span>
+            Proyecto y responsable
+          </h3>
+          <div class="mb-3" data-controller="project-selector">
+            <label class="form-label">Selecciona un proyecto</label>
+            <select name="id_proyecto" class="form-select mb-3"
+                    data-project-selector-target="select"
+                    data-action="change->project-selector#refresh">
               <option value="">Selecciona...</option>
-              <option value="__new__">Otro (escribir nuevo)</option>
-              <% @articulos.each do |a| %>
-                <option value="<%= a.id_articulo %>" data-es-cable="<%= a.es_cable? %>">
-                  <%= a.nombre %>
+              <% @proyectos.each do |p| %>
+                <option value="<%= p.id_proyecto %>"
+                        data-cc="<%= p.c_c %>"
+                        data-obra="<%= p.nombre_obra %>"
+                        <%= "selected" if @cart["id_proyecto"].to_s == p.id_proyecto.to_s %>>
+                  <%= p.nombre_obra_with_cc %>
                 </option>
               <% end %>
             </select>
+            <div class="row g-3 d-none" data-project-selector-target="metrics">
+              <div class="col-sm-6">
+                <div class="small text-secondary mb-1">Centro de costo</div>
+                <span class="badge badge-usse fs-6" data-project-selector-target="cc"></span>
+              </div>
+              <div class="col-sm-6">
+                <div class="small text-secondary mb-1">Obra</div>
+                <div class="fw-semibold" data-project-selector-target="obra"></div>
+              </div>
+            </div>
           </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Responsable de la entrada</label>
+              <%= text_field_tag :responsable, @cart["responsable"], class: "form-control" %>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Observaciones (opcional)</label>
+              <%= text_area_tag :observaciones, @cart["observaciones"], class: "form-control", rows: 2 %>
+            </div>
+          </div>
+        </section>
 
-          <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="newFields">
-            <h4 class="h6">Detalles del nuevo item</h4>
-            <div class="row g-2">
-              <div class="col-md-6">
-                <label class="form-label">Nombre del nuevo item</label>
-                <%= text_field_tag :nombre, nil, class: "form-control", disabled: true %>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Número de catálogo</label>
-                <%= text_field_tag :num_catalogo, nil, class: "form-control", disabled: true %>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Tipo de item</label>
-                <%= select_tag :tipo, options_for_select(%w[material herramienta]), class: "form-select", disabled: true %>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Precio unitario</label>
-                <%= number_field_tag :precio_unitario, 0, class: "form-control", step: :any, min: 0, disabled: true %>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Unidad de medida</label>
-                <%= select_tag :unidad_medida, options_for_select(ApplicationHelper::UNIDADES, "pza"), class: "form-select", disabled: true %>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Stock mínimo para alertas</label>
-                <%= number_field_tag :stock_minimo, 0, class: "form-control", step: :any, min: 0, disabled: true %>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Categoría</label>
-                <%= select_tag :categoria, options_for_select(Articulo::CATEGORIAS.sort), class: "form-select", include_blank: true, disabled: true %>
-              </div>
-              <div class="col-md-4 d-flex align-items-end">
-                <div class="form-check mb-2">
-                  <%= check_box_tag :es_cable, "1", false,
-                        class: "form-check-input",
-                        id: "entrada_es_cable",
-                        disabled: true,
-                        data: {
-                          entrada_item_form_target: "esCableCheckbox",
-                          action: "change->entrada-item-form#refresh"
-                        } %>
-                  <label class="form-check-label" for="entrada_es_cable">¿Es un cable/tramo/carrete?</label>
+        <% if @cart_items.any? %>
+          <section class="mb-4">
+            <h3 class="h6 mb-3">
+              <span class="badge badge-usse me-1">2</span>
+              Ítems en esta entrada
+              <span class="badge text-bg-light text-secondary"><%= @cart_items.size %></span>
+            </h3>
+            <div class="table-responsive">
+              <table class="table table-striped table-hover table-sm mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Artículo</th>
+                    <th>Detalle</th>
+                    <th class="text-end">Cant.</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @cart_items.each_with_index do |item, idx| %>
+                    <tr>
+                      <td><%= idx + 1 %></td>
+                      <td><%= item["nombre_item"] %></td>
+                      <td class="text-secondary">
+                        <% if item["es_cable"] %>
+                          <%= item["nombre_punta"] %>
+                          · <%= item["longitud"] %> m
+                          · <%= item["color"].presence || "N/A" %>
+                        <% else %>
+                          —
+                        <% end %>
+                      </td>
+                      <td class="text-end"><%= item["es_cable"] ? item["longitud"] : item["cantidad"] %></td>
+                      <td class="text-end">
+                        <%= link_to "Quitar", remove_item_entradas_path(index: idx),
+                              data: { turbo_method: :delete },
+                              class: "btn btn-sm btn-outline-danger" %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        <% end %>
+
+        <section class="mb-4">
+          <h3 class="h6 mb-3">
+            <span class="badge badge-usse me-1"><%= @cart_items.any? ? 3 : 2 %></span>
+            Agregar ítem
+          </h3>
+          <div data-controller="entrada-item-form">
+            <div class="mb-3">
+              <label class="form-label">Selecciona un item existente o crea uno nuevo</label>
+              <select name="id_articulo" class="form-select"
+                      data-entrada-item-form-target="articleSelect"
+                      data-action="change->entrada-item-form#refresh">
+                <option value="">Selecciona...</option>
+                <option value="__new__">Otro (escribir nuevo)</option>
+                <% @articulos.each do |a| %>
+                  <option value="<%= a.id_articulo %>" data-es-cable="<%= a.es_cable? %>">
+                    <%= a.nombre %>
+                  </option>
+                <% end %>
+              </select>
+            </div>
+
+            <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="newFields">
+              <h4 class="h6">Detalles del nuevo item</h4>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label">Nombre del nuevo item</label>
+                  <%= text_field_tag :nombre, nil, class: "form-control", disabled: true %>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Número de catálogo</label>
+                  <%= text_field_tag :num_catalogo, nil, class: "form-control", disabled: true %>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Tipo de item</label>
+                  <%= select_tag :tipo, options_for_select(%w[material herramienta]), class: "form-select", disabled: true %>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Precio unitario</label>
+                  <%= number_field_tag :precio_unitario, 0, class: "form-control", step: :any, min: 0, disabled: true %>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Unidad de medida</label>
+                  <%= select_tag :unidad_medida, options_for_select(ApplicationHelper::UNIDADES, "pza"), class: "form-select", disabled: true %>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Stock mínimo para alertas</label>
+                  <%= number_field_tag :stock_minimo, 0, class: "form-control", step: :any, min: 0, disabled: true %>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Categoría</label>
+                  <%= select_tag :categoria, options_for_select(Articulo::CATEGORIAS.sort), class: "form-select", include_blank: true, disabled: true %>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                  <div class="form-check mb-2">
+                    <%= check_box_tag :es_cable, "1", false,
+                          class: "form-check-input",
+                          id: "entrada_es_cable",
+                          disabled: true,
+                          data: {
+                            entrada_item_form_target: "esCableCheckbox",
+                            action: "change->entrada-item-form#refresh"
+                          } %>
+                    <label class="form-check-label" for="entrada_es_cable">¿Es un cable/tramo/carrete?</label>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="cableFields">
-            <h4 class="h6">Detalles del cable</h4>
-            <div class="row g-2">
-              <div class="col-md-6">
-                <label class="form-label">Nombre de la punta/carrete/tramo</label>
-                <%= text_field_tag :nombre_punta, nil, class: "form-control", placeholder: "e.g., Punta Cobre #2", disabled: true %>
+            <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="cableFields">
+              <h4 class="h6">Detalles del cable</h4>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label">Nombre de la punta/carrete/tramo</label>
+                  <%= text_field_tag :nombre_punta, nil, class: "form-control", placeholder: "e.g., Punta Cobre #2", disabled: true %>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Longitud (metros)</label>
+                  <%= number_field_tag :longitud, 0, class: "form-control", step: 0.1, min: 0, disabled: true %>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Color (opcional)</label>
+                  <%= text_field_tag :color, nil, class: "form-control", disabled: true %>
+                </div>
               </div>
-              <div class="col-md-3">
-                <label class="form-label">Longitud (metros)</label>
-                <%= number_field_tag :longitud, 0, class: "form-control", step: 0.1, min: 0, disabled: true %>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">Color (opcional)</label>
-                <%= text_field_tag :color, nil, class: "form-control", disabled: true %>
+            </div>
+
+            <div class="mb-0 d-none" data-entrada-item-form-target="quantityFields">
+              <label class="form-label">Cantidad a agregar</label>
+              <div class="col-md-4 px-0">
+                <%= number_field_tag :cantidad, 0, class: "form-control", step: :any, min: 0, disabled: true %>
               </div>
             </div>
           </div>
+        </section>
 
-          <div class="mb-3 d-none" data-entrada-item-form-target="quantityFields">
-            <label class="form-label">Cantidad a agregar</label>
-            <%= number_field_tag :cantidad, 0, class: "form-control", step: :any, min: 0, disabled: true %>
-          </div>
-        </div>
-
-        <div class="d-flex flex-wrap gap-2 mt-3">
+        <div class="d-flex flex-wrap gap-2 pt-3 border-top">
           <%= submit_tag "Agregar item", class: "btn btn-outline-primary" %>
           <%= submit_tag "Finalizar entrada", formaction: finalize_entradas_path, class: "btn btn-primary" %>
           <%= link_to "Cancelar", cancel_entradas_path, data: { turbo_method: :delete }, class: "btn btn-outline-danger" %>
