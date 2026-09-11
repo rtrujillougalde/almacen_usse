@@ -73,7 +73,19 @@ RSpec.describe "Articulos", type: :request do
       }
 
       expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("Solo un administrador puede cambiar stock o longitudes.")
       expect(articulo.reload.cantidad_en_stock).to eq(10)
+    end
+
+    it "lets an admin change the stock" do
+      sign_in_as(:admin)
+
+      patch articulo_path(articulo), params: {
+        articulo: { nombre: articulo.nombre, cantidad_en_stock: 99 }
+      }
+
+      expect(response).to redirect_to(inventario_path)
+      expect(articulo.reload.cantidad_en_stock).to eq(99)
     end
 
     it "refuses a punta longitud change from a non-admin" do
@@ -93,6 +105,45 @@ RSpec.describe "Articulos", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       expect(punta.reload.longitud).to eq(25.5)
       expect(cable.reload.cantidad_en_stock).to eq(25.5)
+    end
+
+    it "lets an admin change a punta longitud and rederives the cable stock" do
+      sign_in_as(:admin)
+      cable = create(:articulo, :cable, cantidad_en_stock: 25.5)
+      punta = create(:stock_punta, articulo: cable, longitud: 25.5)
+
+      patch articulo_path(cable), params: {
+        articulo: {
+          nombre: cable.nombre,
+          es_cable: "1",
+          cantidad_en_stock: cable.cantidad_en_stock,
+          puntas: { "0" => punta_params(punta, longitud: "99") }
+        }
+      }
+
+      expect(response).to redirect_to(inventario_path)
+      expect(punta.reload.longitud).to eq(99)
+      expect(cable.reload.cantidad_en_stock).to eq(99)
+    end
+
+    # Legacy cables carry a stock figure with no puntas behind it. Deriving
+    # stock from puntas would sum to zero and destroy the figure on any edit,
+    # including one that never touches stock.
+    it "preserves the stock of a legacy cable that has no puntas" do
+      sign_in_as(:operador)
+      cable = create(:articulo, :cable, nombre: "Cable Viejo", cantidad_en_stock: 120)
+
+      patch articulo_path(cable), params: {
+        articulo: {
+          nombre: "Cable Viejo MT",
+          es_cable: "1",
+          cantidad_en_stock: cable.cantidad_en_stock
+        }
+      }
+
+      expect(response).to redirect_to(inventario_path)
+      expect(cable.reload.nombre).to eq("Cable Viejo MT")
+      expect(cable.cantidad_en_stock).to eq(120)
     end
 
     it "edits punta metadata and derives cable stock from the available puntas" do

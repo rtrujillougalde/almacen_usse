@@ -48,6 +48,8 @@ RSpec.describe "Salida flow", type: :system do
     expect(page).to have_content("Carrete 3")
 
     click_button "Finalizar salida"
+    expect(page).to have_content("Confirmar salida")
+
     click_button "Aceptar"
     expect(page).to have_content("Salida registrada con 1 item(s)")
 

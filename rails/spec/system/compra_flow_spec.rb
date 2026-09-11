@@ -58,8 +58,11 @@ RSpec.describe "Compra flow", type: :system do
     fill_in "cantidad", with: "3"
     fill_in "precio_unitario", with: "12.25"
     click_button "Agregar item"
+    expect(page).to have_content("Item agregado a la compra")
 
     click_button "Finalizar compra"
+    expect(page).to have_content("Confirmar compra")
+
     click_button "Aceptar"
     expect(page).to have_content("Compra registrada con 1 item(s)")
 
