@@ -2,7 +2,9 @@ class SalidasController < ApplicationController
   include MovementCartConcern
 
   before_action -> { authorize_page!("salidas") }
-  before_action :load_page_data, only: %i[index create add_item finalize]
+  # create is deliberately absent: it mutates the cart before rendering, so it
+  # loads the page data itself once the new state is settled.
+  before_action :load_page_data, only: %i[index add_item finalize]
 
   def index
   end
@@ -67,6 +69,7 @@ class SalidasController < ApplicationController
       return
     end
 
+    cart["open"] = false
     cart["pending_confirmation"] = true
     redirect_to salidas_path
   end
@@ -97,7 +100,9 @@ class SalidasController < ApplicationController
       redirect_to salidas_path, notice: "Salida registrada con #{count} item(s)"
     else
       cart["pending_confirmation"] = false
+      cart["open"] = true
       flash.now[:alert] = result.error
+      load_page_data
       render :index, status: :unprocessable_entity
     end
   end

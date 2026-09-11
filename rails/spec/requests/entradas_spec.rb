@@ -155,6 +155,52 @@ RSpec.describe "Entradas", type: :request do
     expect(cart["items"].size).to eq(1)
   end
 
+  it "locks the cart while a confirmation is pending" do
+    sign_in_as(:operador)
+    post start_entradas_path
+    add_new_item
+    finalize
+
+    expect(cart["pending_confirmation"]).to eq(true)
+    expect(cart["open"]).to eq(false)
+
+    expect { add_new_item }.not_to change { cart["items"].size }
+    expect(response).to redirect_to(entradas_path)
+    expect(flash[:alert]).to eq("Inicia una nueva entrada primero.")
+
+    finalize
+    expect(response).to redirect_to(entradas_path)
+    expect(flash[:alert]).to eq("No hay una entrada en curso.")
+  end
+
+  # A failed create used to render the confirmation panel from stale ivars
+  # while the cart had already dropped out of pending_confirmation, so the
+  # panel's Aceptar button hit the create guard and bounced. Cancelar was the
+  # only button that worked.
+  it "reopens the form and allows a retry after a failed create" do
+    sign_in_as(:operador)
+    post start_entradas_path
+    add_new_item
+    finalize
+
+    allow(Movimientos::CreateEntrada).to receive(:call)
+      .and_return(double(success?: false, error: "Fallo al guardar"))
+
+    expect { post entradas_path }.not_to change(Movimiento, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Fallo al guardar")
+
+    expect(cart["open"]).to eq(true)
+    expect(cart["pending_confirmation"]).to eq(false)
+    expect(cart["items"].size).to eq(1)
+    expect(response.body).to include("Agregar item")
+    expect(response.body).not_to include("Confirmar entrada")
+
+    allow(Movimientos::CreateEntrada).to receive(:call).and_call_original
+    finalize
+    expect { post entradas_path }.to change(Movimiento, :count).by(1)
+  end
+
   it "rejects a new item without a nombre" do
     sign_in_as(:operador)
     post start_entradas_path
