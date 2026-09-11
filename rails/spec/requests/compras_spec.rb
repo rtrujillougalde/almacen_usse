@@ -165,6 +165,19 @@ RSpec.describe "Compras", type: :request do
     expect { post compras_path }.to change(Movimiento, :count).by(1)
   end
 
+  # Compras never checked the responsable, so a compra could be recorded with
+  # nobody accountable for it. Entradas and salidas both required it.
+  it "requires a responsable before finalizing" do
+    sign_in_as(:operador)
+    start_compra
+    add_new_item
+
+    expect { finalize_compra(responsable: "") }.not_to change(Movimiento, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Responsable es obligatorio")
+    expect(session[:compra_cart]["pending_confirmation"]).to eq(false)
+  end
+
   it "shows precio unitario in recent compras" do
     sign_in_as(:operador)
     movimiento = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "USD")

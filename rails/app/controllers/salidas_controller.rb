@@ -51,20 +51,15 @@ class SalidasController < ApplicationController
 
     sync_header_from_params!
 
-    if cart["responsable"].to_s.strip.blank?
-      flash.now[:alert] = "Debe ingresar el responsable de la salida antes de finalizar"
-      render :index, status: :unprocessable_entity
-      return
-    end
-
     if cart["items"].blank?
       flash.now[:alert] = "Debe agregar al menos un item"
       render :index, status: :unprocessable_entity
       return
     end
 
-    if cart["id_proyecto"].blank?
-      flash.now[:alert] = "Debe seleccionar un proyecto"
+    header_error = header_validation_error
+    if header_error
+      flash.now[:alert] = header_error
       render :index, status: :unprocessable_entity
       return
     end
@@ -86,7 +81,7 @@ class SalidasController < ApplicationController
       return
     end
 
-    proyecto = Proyecto.find(cart["id_proyecto"])
+    proyecto = Proyecto.find_by(id_proyecto: cart["id_proyecto"])
     result = Movimientos::CreateSalida.call(
       proyecto: proyecto,
       responsable: cart["responsable"],
@@ -111,6 +106,13 @@ class SalidasController < ApplicationController
 
   def cart_key
     :salida_cart
+  end
+
+  def header_validation_error
+    return "Debe ingresar el responsable de la salida antes de finalizar" if cart["responsable"].to_s.strip.blank?
+    return "Debe seleccionar un proyecto" if cart["id_proyecto"].blank?
+
+    nil
   end
 
   def load_page_data

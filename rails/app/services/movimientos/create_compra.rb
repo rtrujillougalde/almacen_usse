@@ -6,7 +6,7 @@ module Movimientos
       new(**kwargs).call
     end
 
-    def initialize(proyecto:, moneda:, proveedor:, items:, responsable: nil, observaciones: nil)
+    def initialize(proyecto:, moneda:, proveedor:, items:, responsable:, observaciones: nil)
       @proyecto = proyecto
       @moneda = moneda
       @proveedor = proveedor
@@ -16,6 +16,7 @@ module Movimientos
     end
 
     def call
+      return failure("Responsable es obligatorio") if @responsable.blank?
       return failure("Proyecto es obligatorio") if @proyecto.blank?
       return failure("Moneda es obligatoria") if @moneda.blank?
       return failure("Moneda inválida") unless Movimiento::MONEDAS.include?(@moneda.to_s)

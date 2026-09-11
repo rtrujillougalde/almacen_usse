@@ -201,6 +201,20 @@ RSpec.describe "Entradas", type: :request do
     expect { post entradas_path }.to change(Movimiento, :count).by(1)
   end
 
+  # Proyecto.find raised RecordNotFound here, so a proyecto deleted mid-cart
+  # produced a 500 rather than a message the user could act on.
+  it "reports a missing proyecto instead of raising when it disappears mid-cart" do
+    sign_in_as(:operador)
+    post start_entradas_path
+    add_new_item
+    finalize
+    proyecto.destroy!
+
+    expect { post entradas_path }.not_to change(Movimiento, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Proyecto es obligatorio")
+  end
+
   it "rejects a new item without a nombre" do
     sign_in_as(:operador)
     post start_entradas_path

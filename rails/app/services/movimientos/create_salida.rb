@@ -15,6 +15,7 @@ module Movimientos
 
     def call
       return failure("Responsable es obligatorio") if @responsable.blank?
+      return failure("Proyecto es obligatorio") if @proyecto.blank?
       return failure("Agrega al menos un artículo") if @items.blank?
 
       movimiento = nil
