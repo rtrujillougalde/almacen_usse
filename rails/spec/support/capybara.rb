@@ -38,9 +38,13 @@ RSpec.configure do |config|
   end
 
   # The movement cart lives in the session cookie, so a cart left open by one
-  # example hides the "Iniciar nueva ..." button in the next one. Specs run in
-  # random order, which made that leak intermittent.
+  # example hides the "Iniciar nueva ..." button in the next one.
+  #
+  # Capybara.reset_sessions! alone is not enough: it navigates to about:blank
+  # before clearing, and Chrome has no cookie context there, so the cookie
+  # survives. Clear it while the browser is still on the application host.
   config.after(:each, type: :system) do
+    Capybara.current_session.driver.browser.manage.delete_all_cookies if page.current_url.start_with?("http")
     Capybara.reset_sessions!
     Warden.test_reset!
   end

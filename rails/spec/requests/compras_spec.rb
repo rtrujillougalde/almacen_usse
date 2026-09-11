@@ -8,6 +8,15 @@ RSpec.describe "Compras", type: :request do
     post start_compras_path
   end
 
+  def finalize_compra(params = {})
+    post finalize_compras_path, params: {
+      id_proyecto: proyecto.id_proyecto,
+      moneda: "MXN",
+      id_proveedor: proveedor.id_proveedor,
+      responsable: "Op"
+    }.merge(params)
+  end
+
   def add_new_item(precio_unitario: "7.5")
     post add_item_compras_path, params: {
       id_proyecto: proyecto.id_proyecto,
@@ -110,6 +119,52 @@ RSpec.describe "Compras", type: :request do
     expect(response.body).to include("Proyecto es obligatorio")
   end
 
+  it "locks the cart while a confirmation is pending" do
+    sign_in_as(:operador)
+    start_compra
+    add_new_item
+    finalize_compra
+
+    expect(session[:compra_cart]["pending_confirmation"]).to eq(true)
+    expect(session[:compra_cart]["open"]).to eq(false)
+
+    expect { add_new_item }.not_to change { session[:compra_cart]["items"].size }
+    expect(response).to redirect_to(compras_path)
+    expect(flash[:alert]).to eq("Inicia una nueva compra primero.")
+
+    finalize_compra
+    expect(response).to redirect_to(compras_path)
+    expect(flash[:alert]).to eq("No hay una compra en curso.")
+  end
+
+  # A failed create used to render the confirmation panel from stale ivars
+  # while the cart had already dropped out of pending_confirmation, so the
+  # panel's Aceptar button hit the create guard and bounced. Cancelar was the
+  # only button that worked.
+  it "reopens the form and allows a retry after a failed create" do
+    sign_in_as(:operador)
+    start_compra
+    add_new_item
+    finalize_compra
+
+    allow(Movimientos::CreateCompra).to receive(:call)
+      .and_return(double(success?: false, error: "Fallo al guardar"))
+
+    expect { post compras_path }.not_to change(Movimiento, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Fallo al guardar")
+
+    expect(session[:compra_cart]["open"]).to eq(true)
+    expect(session[:compra_cart]["pending_confirmation"]).to eq(false)
+    expect(session[:compra_cart]["items"].size).to eq(1)
+    expect(response.body).to include("Agregar item")
+    expect(response.body).not_to include("Confirmar compra")
+
+    allow(Movimientos::CreateCompra).to receive(:call).and_call_original
+    finalize_compra
+    expect { post compras_path }.to change(Movimiento, :count).by(1)
+  end
+
   it "shows precio unitario in recent compras" do
     sign_in_as(:operador)
     movimiento = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "USD")
@@ -131,4 +186,3 @@ RSpec.describe "Compras", type: :request do
     expect(response).to redirect_to(inventario_path)
   end
 end
-
