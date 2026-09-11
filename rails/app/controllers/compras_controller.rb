@@ -132,6 +132,7 @@ class ComprasController < ApplicationController
   end
 
   def header_validation_error
+    return "Responsable es obligatorio" if cart["responsable"].to_s.strip.blank?
     return "Proyecto es obligatorio" if cart["id_proyecto"].blank?
     return "Moneda es obligatoria" if cart["moneda"].blank?
     return "Moneda inválida" unless Movimiento::MONEDAS.include?(cart["moneda"].to_s)

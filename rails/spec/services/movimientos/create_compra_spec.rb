@@ -17,8 +17,20 @@ RSpec.describe Movimientos::CreateCompra do
     }
   end
 
-  def call_service(proyecto: self.proyecto, moneda: "MXN", proveedor: self.proveedor, items: [ valid_new_item ])
-    described_class.call(proyecto: proyecto, moneda: moneda, proveedor: proveedor, items: items)
+  def call_service(proyecto: self.proyecto, moneda: "MXN", proveedor: self.proveedor,
+                   items: [ valid_new_item ], responsable: "Ana")
+    described_class.call(
+      proyecto: proyecto, moneda: moneda, proveedor: proveedor,
+      items: items, responsable: responsable
+    )
+  end
+
+  it "fails without responsable" do
+    expect {
+      result = call_service(responsable: "")
+      expect(result.success?).to eq(false)
+      expect(result.error).to eq("Responsable es obligatorio")
+    }.not_to change(Movimiento, :count)
   end
 
   it "fails without proyecto" do

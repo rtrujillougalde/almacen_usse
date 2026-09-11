@@ -152,6 +152,33 @@ RSpec.describe "Salidas", type: :request do
     expect { post salidas_path }.to change(Movimiento.where(tipo: :salida), :count).by(1)
   end
 
+  # Settles the guard order: an empty cart is reported before missing header
+  # fields, matching entradas and compras. Salidas used to check the
+  # responsable first.
+  it "checks items before the header fields" do
+    sign_in_as(:operador)
+    post start_salidas_path
+
+    finalize(responsable: "", id_proyecto: "")
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Debe agregar al menos un item")
+  end
+
+  # Proyecto.find raised RecordNotFound here, so a proyecto deleted mid-cart
+  # produced a 500 rather than a message the user could act on.
+  it "reports a missing proyecto instead of raising when it disappears mid-cart" do
+    sign_in_as(:operador)
+    post start_salidas_path
+    add_item
+    finalize
+    proyecto.destroy!
+
+    expect { post salidas_path }.not_to change(Movimiento, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Proyecto es obligatorio")
+  end
+
   it "rejects a quantity above available stock" do
     sign_in_as(:operador)
     post start_salidas_path
