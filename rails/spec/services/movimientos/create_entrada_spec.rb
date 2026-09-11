@@ -3,6 +3,24 @@ require "rails_helper"
 RSpec.describe Movimientos::CreateEntrada do
   let(:proyecto) { create(:proyecto) }
 
+  # An entrada records no money: unlike a compra it never overwrites the
+  # articulo price and never stamps one on the detalle, even when the caller
+  # supplies one. This is the difference precio_required? selects.
+  it "records no price on the detalle and leaves the articulo price alone" do
+    articulo = create(:articulo, cantidad_en_stock: 5, precio_unitario: 100)
+
+    result = described_class.call(
+      proyecto: proyecto,
+      responsable: "Ana",
+      items: [ { is_new: false, id_articulo: articulo.id_articulo, cantidad: 3, precio_unitario: 999 } ]
+    )
+
+    expect(result.success?).to eq(true)
+    expect(articulo.reload.cantidad_en_stock).to eq(8)
+    expect(articulo.precio_unitario).to eq(100)
+    expect(result.movimiento.detalle_movimientos.sole.precio_unitario).to be_nil
+  end
+
   it "creates new non-cable article and increments stock" do
     result = described_class.call(
       proyecto: proyecto,

@@ -2,7 +2,9 @@ class ComprasController < ApplicationController
   include MovementCartConcern
 
   before_action -> { authorize_page!("compras") }
-  before_action :load_page_data, only: %i[index create add_item finalize]
+  # create is deliberately absent: it mutates the cart before rendering, so it
+  # loads the page data itself once the new state is settled.
+  before_action :load_page_data, only: %i[index add_item finalize]
 
   def index
   end
@@ -98,6 +100,7 @@ class ComprasController < ApplicationController
       cart["pending_confirmation"] = false
       cart["open"] = true
       flash.now[:alert] = result.error
+      load_page_data
       render :index, status: :unprocessable_entity
     end
   end
@@ -129,6 +132,7 @@ class ComprasController < ApplicationController
   end
 
   def header_validation_error
+    return "Responsable es obligatorio" if cart["responsable"].to_s.strip.blank?
     return "Proyecto es obligatorio" if cart["id_proyecto"].blank?
     return "Moneda es obligatoria" if cart["moneda"].blank?
     return "Moneda inválida" unless Movimiento::MONEDAS.include?(cart["moneda"].to_s)

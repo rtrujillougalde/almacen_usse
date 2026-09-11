@@ -15,14 +15,17 @@ class ArticulosController < ApplicationController
     puntas_attrs = punta_params_list
     longitud_changed = puntas_length_changed?(puntas_attrs)
 
-    if (stock_changed || longitud_changed) && !admin_password_valid?
-      flash.now[:alert] = "Se requiere la contraseña de admin para cambiar stock o longitudes."
+    if (stock_changed || longitud_changed) && !current_user.admin?
+      flash.now[:alert] = "Solo un administrador puede cambiar stock o longitudes."
       return render :edit, status: :unprocessable_entity
     end
 
     ActiveRecord::Base.transaction do
       @articulo.assign_attributes(articulo_params)
-      if @articulo.es_cable?
+      # Only cables whose puntas are actually tracked derive their stock from
+      # them. Legacy cables carry a stock figure with no puntas behind it, and
+      # deriving would silently zero it.
+      if @articulo.es_cable? && @articulo.stock_puntas.exists?
         apply_puntas!(puntas_attrs)
         @articulo.cantidad_en_stock = @articulo.stock_puntas.merge(StockPunta.available).sum(:longitud)
       end
@@ -71,12 +74,6 @@ class ArticulosController < ApplicationController
       next false unless punta
       attrs[:longitud].to_f != punta.longitud.to_f
     end
-  end
-
-  def admin_password_valid?
-    password = params[:admin_password].to_s
-    admin = User.find_by(username: "admin")
-    admin&.valid_password?(password)
   end
 
   def apply_puntas!(puntas_attrs)

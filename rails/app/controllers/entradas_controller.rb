@@ -2,7 +2,9 @@ class EntradasController < ApplicationController
   include MovementCartConcern
 
   before_action -> { authorize_page!("entradas") }
-  before_action :load_page_data, only: %i[index create add_item finalize]
+  # create is deliberately absent: it mutates the cart before rendering, so it
+  # loads the page data itself once the new state is settled.
+  before_action :load_page_data, only: %i[index add_item finalize]
 
   def index
   end
@@ -55,14 +57,9 @@ class EntradasController < ApplicationController
       return
     end
 
-    if cart["responsable"].to_s.strip.blank?
-      flash.now[:alert] = "Debe ingresar el responsable de la entrada antes de confirmar."
-      render :index, status: :unprocessable_entity
-      return
-    end
-
-    if cart["id_proyecto"].blank?
-      flash.now[:alert] = "Debe seleccionar un proyecto"
+    header_error = header_validation_error
+    if header_error
+      flash.now[:alert] = header_error
       render :index, status: :unprocessable_entity
       return
     end
@@ -84,7 +81,7 @@ class EntradasController < ApplicationController
       return
     end
 
-    proyecto = Proyecto.find(cart["id_proyecto"])
+    proyecto = Proyecto.find_by(id_proyecto: cart["id_proyecto"])
     result = Movimientos::CreateEntrada.call(
       proyecto: proyecto,
       responsable: cart["responsable"],
@@ -100,6 +97,7 @@ class EntradasController < ApplicationController
       cart["pending_confirmation"] = false
       cart["open"] = true
       flash.now[:alert] = result.error
+      load_page_data
       render :index, status: :unprocessable_entity
     end
   end
@@ -108,6 +106,13 @@ class EntradasController < ApplicationController
 
   def cart_key
     :entrada_cart
+  end
+
+  def header_validation_error
+    return "Debe ingresar el responsable de la entrada antes de confirmar." if cart["responsable"].to_s.strip.blank?
+    return "Debe seleccionar un proyecto" if cart["id_proyecto"].blank?
+
+    nil
   end
 
   def load_page_data
