@@ -48,18 +48,7 @@ RSpec.describe "Inventario", type: :request do
       expect(articulo.proveedor_record).to eq(other)
     end
 
-    it "rejects stock change without admin password" do
-      create(:user, :admin, username: "admin", email: "admin@usse.local", password: "password")
-      patch articulo_path(articulo), params: {
-        articulo: { nombre: articulo.nombre, cantidad_en_stock: 9, tipo: articulo.tipo },
-        admin_password: "wrong"
-      }
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(articulo.reload.cantidad_en_stock).to eq(5)
-    end
-
-    it "updates stock with admin password" do
-      create(:user, :admin, username: "admin", email: "admin@usse.local", password: "password")
+    it "updates stock as an admin" do
       patch articulo_path(articulo), params: {
         articulo: {
           nombre: articulo.nombre,
@@ -67,15 +56,13 @@ RSpec.describe "Inventario", type: :request do
           tipo: articulo.tipo,
           stock_minimo: articulo.stock_minimo,
           unidad_medida: articulo.unidad_medida
-        },
-        admin_password: "password"
+        }
       }
       expect(response).to redirect_to(inventario_path)
       expect(articulo.reload.cantidad_en_stock).to eq(9)
     end
 
     it "recalculates cable stock from available puntas after length change" do
-      create(:user, :admin, username: "admin", email: "admin@usse.local", password: "password")
       cable = create(:articulo, :cable, cantidad_en_stock: 10)
       punta = create(:stock_punta, articulo: cable, longitud: 10, nombre_punta: "P1")
 
@@ -87,8 +74,7 @@ RSpec.describe "Inventario", type: :request do
           puntas: {
             "0" => { id_punta: punta.id_punta, nombre_punta: "P1", longitud: 40, color: "rojo" }
           }
-        },
-        admin_password: "password"
+        }
       }
 
       expect(response).to redirect_to(inventario_path)

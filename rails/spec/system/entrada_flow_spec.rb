@@ -50,6 +50,8 @@ RSpec.describe "Entrada flow", type: :system do
     expect(page).to have_content("Carrete 7")
 
     click_button "Finalizar entrada"
+    expect(page).to have_content("Confirmar entrada")
+
     click_button "Aceptar"
     expect(page).to have_content("Movimiento registrado con 1 item(s)")
 
