@@ -1,47 +1,14 @@
 module Movimientos
-  class CreateSalida
-    Result = Struct.new(:success?, :movimiento, :error, keyword_init: true)
-
-    def self.call(**kwargs)
-      new(**kwargs).call
-    end
-
-    def initialize(proyecto:, responsable:, items:, observaciones: nil)
-      @proyecto = proyecto
-      @responsable = responsable
-      @items = items
-      @observaciones = observaciones
-    end
-
-    def call
-      return failure("Responsable es obligatorio") if @responsable.blank?
-      return failure("Proyecto es obligatorio") if @proyecto.blank?
-      return failure("Agrega al menos un artículo") if @items.blank?
-
-      movimiento = nil
-      ActiveRecord::Base.transaction do
-        movimiento = Movimiento.create!(
-          proyecto: @proyecto,
-          tipo: :salida,
-          responsable: @responsable,
-          observaciones: @observaciones,
-          fecha_hora: Time.current
-        )
-
-        @items.each { |item| process_item!(movimiento, item) }
-      end
-
-      Result.new(success?: true, movimiento: movimiento)
-    rescue ActiveRecord::RecordInvalid, ArgumentError => e
-      Result.new(success?: false, error: e.message)
-    end
-
+  class CreateSalida < Base
     private
 
-    def failure(message)
-      Result.new(success?: false, error: message)
+    def tipo
+      :salida
     end
 
+    # The only movement type that locks. A salida reads stock and punta
+    # availability to decide whether it may proceed, so two concurrent salidas
+    # could otherwise both pass the check and oversell the same articulo.
     def process_item!(movimiento, item)
       articulo = Articulo.lock.find(item[:id_articulo])
 
