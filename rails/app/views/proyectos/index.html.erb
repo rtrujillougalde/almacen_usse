@@ -38,7 +38,7 @@
         <%= form_with model: @proyecto, url: proyectos_path do |f| %>
           <div class="mb-3">
             <%= f.label :c_c, "Centro de costos (C.C.)", class: "form-label" %>
-            <%= f.number_field :c_c, class: "form-control", required: true, min: 1 %>
+            <%= f.text_field :c_c, class: "form-control", required: true, maxlength: 50 %>
           </div>
           <div class="mb-3">
             <%= f.label :nombre_obra, "Nombre de obra", class: "form-label" %>
