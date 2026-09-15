@@ -17,4 +17,18 @@ RSpec.describe Proyecto, type: :model do
     proyecto = build(:proyecto, c_c: 12, nombre_obra: "Obra X")
     expect(proyecto.nombre_obra_with_cc).to eq("12 | Obra X")
   end
+  it "accepts letters, numbers, and symbols in c_c" do
+    proyecto = build(:proyecto, c_c: "CC-01/A")
+    expect(proyecto).to be_valid
+  end
+  
+  it "strips whitespace from c_c" do
+    proyecto = create(:proyecto, c_c: "  CC-01  ")
+    expect(proyecto.c_c).to eq("CC-01")
+  end
+  
+  it "rejects c_c longer than 50" do
+    proyecto = build(:proyecto, c_c: "A" * 51)
+    expect(proyecto).not_to be_valid
+  end
 end
