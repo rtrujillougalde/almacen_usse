@@ -32,5 +32,13 @@ RSpec.describe "Proyectos", type: :request do
       }.not_to change(Proyecto, :count)
       expect(response).to have_http_status(:unprocessable_entity)
     end
+    it "creates a proyecto with alphanumeric c_c" do
+      expect {
+        post proyectos_path, params: {
+          proyecto: { c_c: "CC-01/A", nombre_obra: "Nueva Obra", encargado: "Ana" }
+        }
+      }.to change(Proyecto, :count).by(1)
+      expect(Proyecto.last.c_c).to eq("CC-01/A")
+    end
   end
 end
