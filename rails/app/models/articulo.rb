@@ -70,4 +70,29 @@ class Articulo < ApplicationRecord
 
     cantidad_en_stock < stock_minimo
   end
+
+  # cantidad_en_stock is a cache, and only cables with tracked puntas can have
+  # it recomputed: their stock is the length still on the shelf. Everything
+  # else carries an opening balance from before the movement history existed,
+  # so the stored figure is the only truth there is.
+  def derivable_stock?
+    es_cable? && stock_puntas.exists?
+  end
+
+  def derived_stock
+    stock_puntas.merge(StockPunta.available).sum(:longitud)
+  end
+
+  # Positive when the cache is behind the puntas, nil when nothing to compare.
+  def stock_drift
+    return nil unless derivable_stock?
+
+    derived_stock - cantidad_en_stock.to_d
+  end
+
+  def recalculate_stock!
+    return false unless derivable_stock?
+
+    update!(cantidad_en_stock: derived_stock)
+  end
 end

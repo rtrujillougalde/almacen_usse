@@ -22,12 +22,9 @@ class ArticulosController < ApplicationController
 
     ActiveRecord::Base.transaction do
       @articulo.assign_attributes(articulo_params)
-      # Only cables whose puntas are actually tracked derive their stock from
-      # them. Legacy cables carry a stock figure with no puntas behind it, and
-      # deriving would silently zero it.
-      if @articulo.es_cable? && @articulo.stock_puntas.exists?
+      if @articulo.derivable_stock?
         apply_puntas!(puntas_attrs)
-        @articulo.cantidad_en_stock = @articulo.stock_puntas.merge(StockPunta.available).sum(:longitud)
+        @articulo.cantidad_en_stock = @articulo.derived_stock
       end
       @articulo.save!
     end

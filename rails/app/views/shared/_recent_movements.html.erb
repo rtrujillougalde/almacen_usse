@@ -26,8 +26,8 @@
                 </div>
               </div>
               <div class="text-md-end flex-shrink-0">
-                <div class="small text-secondary"><%= format_datetime(m.fecha_hora, format: "%d/%m/%Y") %></div>
-                <div class="fw-semibold"><%= format_datetime(m.fecha_hora, format: "%H:%M") %></div>
+                <div class="small text-secondary"><%= format_datetime(m.fecha_hora, format: :date_only) %></div>
+                <div class="fw-semibold"><%= format_datetime(m.fecha_hora, format: :time_only) %></div>
               </div>
             </div>
           </div>
@@ -52,7 +52,7 @@
                       <td class="text-truncate" title="<%= d.articulo&.nombre %>"><%= d.articulo&.nombre %></td>
                       <td class="text-end text-nowrap"><%= d.cantidad %></td>
                       <% if local_assigns[:show_precio] %>
-                        <td class="text-end text-nowrap"><%= d.precio_unitario.present? ? "#{number_to_currency(d.precio_unitario, unit: "$")} #{m.moneda}" : "—" %></td>
+                        <td class="text-end text-nowrap"><%= d.precio_unitario.present? ? "#{number_to_currency(d.precio_unitario)} #{m.moneda}" : "—" %></td>
                       <% end %>
                       <% if show_punta %>
                         <td class="text-truncate"><%= d.stock_punta&.nombre_punta || "—" %></td>

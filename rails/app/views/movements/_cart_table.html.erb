@@ -39,7 +39,7 @@
           <td class="text-end"><%= item["es_cable"] ? item["longitud"] : item["cantidad"] %></td>
           <% if local_assigns[:show_precio] %>
             <td class="text-end text-nowrap">
-              <%= number_to_currency(item["precio_unitario"], unit: "$") %>
+              <%= number_to_currency(item["precio_unitario"]) %>
               <%= local_assigns[:moneda] %>
             </td>
           <% end %>
