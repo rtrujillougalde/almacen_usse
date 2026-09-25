@@ -3,28 +3,28 @@ class ArticulosController < ApplicationController
   before_action :set_articulo
 
   def edit
-    @proveedores = Proveedor.order(:nombre)
+    @proveedores = Proveedor.alphabetical
     @available_puntas = @articulo.stock_puntas.merge(StockPunta.available).order(:id_punta)
   end
 
   def update
-    @proveedores = Proveedor.order(:nombre)
+    @proveedores = Proveedor.alphabetical
     @available_puntas = @articulo.stock_puntas.merge(StockPunta.available).order(:id_punta)
 
     stock_changed = stock_fields_changed?
     puntas_attrs = punta_params_list
     longitud_changed = puntas_length_changed?(puntas_attrs)
 
-    if (stock_changed || longitud_changed) && !admin_password_valid?
-      flash.now[:alert] = "Se requiere la contraseña de admin para cambiar stock o longitudes."
-      return render :edit, status: :unprocessable_entity
+    if (stock_changed || longitud_changed) && !current_user.admin?
+      flash.now[:alert] = "Solo un administrador puede cambiar stock o longitudes."
+      return render :edit, status: :unprocessable_content
     end
 
     ActiveRecord::Base.transaction do
       @articulo.assign_attributes(articulo_params)
-      if @articulo.es_cable?
+      if @articulo.derivable_stock?
         apply_puntas!(puntas_attrs)
-        @articulo.cantidad_en_stock = @articulo.stock_puntas.merge(StockPunta.available).sum(:longitud)
+        @articulo.cantidad_en_stock = @articulo.derived_stock
       end
       @articulo.save!
     end
@@ -32,7 +32,7 @@ class ArticulosController < ApplicationController
     redirect_to inventario_path, notice: "Artículo actualizado."
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    render :edit, status: :unprocessable_entity
+    render :edit, status: :unprocessable_content
   end
 
   private
@@ -71,12 +71,6 @@ class ArticulosController < ApplicationController
       next false unless punta
       attrs[:longitud].to_f != punta.longitud.to_f
     end
-  end
-
-  def admin_password_valid?
-    password = params[:admin_password].to_s
-    admin = User.find_by(username: "admin")
-    admin&.valid_password?(password)
   end
 
   def apply_puntas!(puntas_attrs)

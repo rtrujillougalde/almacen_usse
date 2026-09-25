@@ -93,10 +93,9 @@
         <% end %>
       <% end %>
 
-      <div class="mb-3 mt-3">
-        <label class="form-label">Contraseña admin (si cambias stock o longitudes)</label>
-        <%= password_field_tag :admin_password, nil, class: "form-control", autocomplete: "current-password" %>
-      </div>
+      <% unless current_user.admin? %>
+        <div class="form-text mb-3 mt-3">Solo un administrador puede cambiar stock o longitudes.</div>
+      <% end %>
 
       <div class="d-flex gap-2">
         <%= f.submit "Guardar", class: "btn btn-primary" %>

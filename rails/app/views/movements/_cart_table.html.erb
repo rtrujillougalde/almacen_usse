@@ -1,0 +1,57 @@
+<%#
+  The lines currently in a movement cart.
+
+  remove_path is a lambda taking the row index, or nil on the confirmation
+  panel where the cart is locked and rows cannot be pulled out.
+%>
+<div class="table-responsive">
+  <table class="table table-striped table-hover table-sm mb-0 align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Artículo</th>
+        <th>Detalle</th>
+        <th class="text-end">Cant.</th>
+        <% if local_assigns[:show_precio] %>
+          <th class="text-end">Precio</th>
+        <% end %>
+        <% if local_assigns[:remove_path] %>
+          <th></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% items.each_with_index do |item, idx| %>
+        <tr>
+          <td><%= idx + 1 %></td>
+          <td><%= item["nombre_item"] %></td>
+          <td class="text-secondary">
+            <% if item["es_cable"] %>
+              <%= item["nombre_punta"] %>
+              · <%= item["longitud"] %> m
+              <% if item["color"].present? %>
+                · <%= item["color"] %>
+              <% end %>
+            <% else %>
+              —
+            <% end %>
+          </td>
+          <td class="text-end"><%= item["es_cable"] ? item["longitud"] : item["cantidad"] %></td>
+          <% if local_assigns[:show_precio] %>
+            <td class="text-end text-nowrap">
+              <%= number_to_currency(item["precio_unitario"]) %>
+              <%= local_assigns[:moneda] %>
+            </td>
+          <% end %>
+          <% if local_assigns[:remove_path] %>
+            <td class="text-end">
+              <%= link_to "Quitar", remove_path.call(idx),
+                    data: { turbo_method: :delete },
+                    class: "btn btn-sm btn-outline-danger" %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

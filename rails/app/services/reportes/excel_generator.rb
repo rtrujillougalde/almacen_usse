@@ -3,7 +3,7 @@ require "caxlsx"
 module Reportes
   # Excel layout mirrored from src/p_reportes.py (openpyxl table + currency format).
   class ExcelGenerator
-    CURRENCY_FORMAT = '[$$-es-MX]#,##0.00'
+    CURRENCY_FORMAT = "[$$-es-MX]#,##0.00"
     MATERIAL_WIDTH = 46
 
     def self.movement(movement_type:, rows:)

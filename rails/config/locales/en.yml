@@ -27,5 +27,23 @@
 #       "yes": yup
 #       enabled: "ON"
 
+# The interface is Spanish but the locale stays :en, because Devise ships its
+# messages under en and switching the default would fall back to raw keys.
+# Only the formats live here; user-facing strings are written in place.
 en:
   hello: "Hello world"
+
+  time:
+    formats:
+      default: "%d/%m/%Y %H:%M"
+      date_only: "%d/%m/%Y"
+      time_only: "%H:%M"
+
+  number:
+    currency:
+      format:
+        unit: "$"
+        format: "%u%n"
+        precision: 2
+        delimiter: ","
+        separator: "."

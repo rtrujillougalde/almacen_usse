@@ -1,9 +1,9 @@
 class ProveedoresController < ApplicationController
-  before_action -> { authorize_page!("proveedores") }
+  before_action :authorize_page!
   before_action :set_proveedor, only: %i[edit update]
 
   def index
-    @proveedores = Proveedor.order(:nombre)
+    @proveedores = Proveedor.alphabetical
   end
 
   def new
@@ -15,7 +15,7 @@ class ProveedoresController < ApplicationController
     if @proveedor.save
       redirect_to proveedores_path, notice: "Proveedor creado."
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -26,7 +26,7 @@ class ProveedoresController < ApplicationController
     if @proveedor.update(proveedor_params)
       redirect_to proveedores_path, notice: "Proveedor actualizado."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

@@ -1,64 +1,13 @@
 <%= render "shared/page_header", title: "Entradas", subtitle: "Registro de entradas al almacén" %>
 
-<div class="mb-4">
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-white border-0 pt-3 pb-0">
-      <div class="d-flex justify-content-between align-items-center">
-        <h2 class="h5 mb-0">Movimientos de entrada recientes</h2>
-        <span class="badge text-bg-light text-secondary">6 últimos</span>
-      </div>
-    </div>
-    <div class="card-body">
-      <%= render "shared/recent_movements", recent: @recent %>
-    </div>
-  </div>
-</div>
+<%= render "movements/recent_panel", title: "Movimientos de entrada recientes", recent: @recent %>
 
 <% if @pending_confirmation %>
-  <div class="card shadow-sm border-0 border-warning mb-4">
-    <div class="card-header bg-white border-0 pt-3 pb-0">
-      <h2 class="h5 mb-0">Confirmar entrada</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-secondary">Revisa los ítems que se registrarán:</p>
-      <div class="table-responsive mb-4">
-        <table class="table table-striped table-hover table-sm mb-0 align-middle">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Artículo</th>
-              <th>Detalle</th>
-              <th class="text-end">Cant.</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @cart_items.each_with_index do |item, idx| %>
-              <tr>
-                <td><%= idx + 1 %></td>
-                <td><%= item["nombre_item"] %></td>
-                <td class="text-secondary">
-                  <% if item["es_cable"] %>
-                    <%= item["nombre_punta"] %>
-                    · <%= item["longitud"] %> m
-                    <% if item["color"].present? %>
-                      · <%= item["color"] %>
-                    <% end %>
-                  <% else %>
-                    —
-                  <% end %>
-                </td>
-                <td class="text-end"><%= item["es_cable"] ? item["longitud"] : item["cantidad"] %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-      <div class="d-flex gap-2">
-        <%= button_to "Aceptar", entradas_path, method: :post, class: "btn btn-primary" %>
-        <%= button_to "Cancelar", dismiss_confirmation_entradas_path, method: :delete, class: "btn btn-outline-secondary" %>
-      </div>
-    </div>
-  </div>
+  <%= render "movements/confirm_panel",
+        noun: "entrada",
+        items: @cart_items,
+        accept_path: entradas_path,
+        dismiss_path: dismiss_confirmation_entradas_path %>
 <% elsif @form_open %>
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white border-0 pt-3 pb-0">
@@ -71,32 +20,7 @@
             <span class="badge badge-usse me-1">1</span>
             Proyecto y responsable
           </h3>
-          <div class="mb-3" data-controller="project-selector">
-            <label class="form-label">Selecciona un proyecto</label>
-            <select name="id_proyecto" class="form-select mb-3"
-                    data-project-selector-target="select"
-                    data-action="change->project-selector#refresh">
-              <option value="">Selecciona...</option>
-              <% @proyectos.each do |p| %>
-                <option value="<%= p.id_proyecto %>"
-                        data-cc="<%= p.c_c %>"
-                        data-obra="<%= p.nombre_obra %>"
-                        <%= "selected" if @cart["id_proyecto"].to_s == p.id_proyecto.to_s %>>
-                  <%= p.nombre_obra_with_cc %>
-                </option>
-              <% end %>
-            </select>
-            <div class="row g-3 d-none" data-project-selector-target="metrics">
-              <div class="col-sm-6">
-                <div class="small text-secondary mb-1">Centro de costo</div>
-                <span class="badge badge-usse fs-6" data-project-selector-target="cc"></span>
-              </div>
-              <div class="col-sm-6">
-                <div class="small text-secondary mb-1">Obra</div>
-                <div class="fw-semibold" data-project-selector-target="obra"></div>
-              </div>
-            </div>
-          </div>
+          <%= render "movements/project_selector", proyectos: @proyectos, selected: @cart["id_proyecto"] %>
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Responsable de la entrada</label>
@@ -116,42 +40,9 @@
               Ítems en esta entrada
               <span class="badge text-bg-light text-secondary"><%= @cart_items.size %></span>
             </h3>
-            <div class="table-responsive">
-              <table class="table table-striped table-hover table-sm mb-0 align-middle">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Artículo</th>
-                    <th>Detalle</th>
-                    <th class="text-end">Cant.</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% @cart_items.each_with_index do |item, idx| %>
-                    <tr>
-                      <td><%= idx + 1 %></td>
-                      <td><%= item["nombre_item"] %></td>
-                      <td class="text-secondary">
-                        <% if item["es_cable"] %>
-                          <%= item["nombre_punta"] %>
-                          · <%= item["longitud"] %> m
-                          · <%= item["color"].presence || "N/A" %>
-                        <% else %>
-                          —
-                        <% end %>
-                      </td>
-                      <td class="text-end"><%= item["es_cable"] ? item["longitud"] : item["cantidad"] %></td>
-                      <td class="text-end">
-                        <%= link_to "Quitar", remove_item_entradas_path(index: idx),
-                              data: { turbo_method: :delete },
-                              class: "btn btn-sm btn-outline-danger" %>
-                      </td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
+            <%= render "movements/cart_table",
+                  items: @cart_items,
+                  remove_path: ->(idx) { remove_item_entradas_path(index: idx) } %>
           </section>
         <% end %>
 
@@ -160,12 +51,12 @@
             <span class="badge badge-usse me-1"><%= @cart_items.any? ? 3 : 2 %></span>
             Agregar ítem
           </h3>
-          <div data-controller="entrada-item-form">
+          <div data-controller="item-form">
             <div class="mb-3">
               <label class="form-label">Selecciona un item existente o crea uno nuevo</label>
               <select name="id_articulo" class="form-select"
-                      data-entrada-item-form-target="articleSelect"
-                      data-action="change->entrada-item-form#refresh">
+                      data-item-form-target="articleSelect"
+                      data-action="change->item-form#refresh">
                 <option value="">Selecciona...</option>
                 <option value="__new__">Otro (escribir nuevo)</option>
                 <% @articulos.each do |a| %>
@@ -176,72 +67,10 @@
               </select>
             </div>
 
-            <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="newFields">
-              <h4 class="h6">Detalles del nuevo item</h4>
-              <div class="row g-2">
-                <div class="col-md-6">
-                  <label class="form-label">Nombre del nuevo item</label>
-                  <%= text_field_tag :nombre, nil, class: "form-control", disabled: true %>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Número de catálogo</label>
-                  <%= text_field_tag :num_catalogo, nil, class: "form-control", disabled: true %>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Tipo de item</label>
-                  <%= select_tag :tipo, options_for_select(%w[material herramienta]), class: "form-select", disabled: true %>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Precio unitario</label>
-                  <%= number_field_tag :precio_unitario, 0, class: "form-control", step: :any, min: 0, disabled: true %>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Unidad de medida</label>
-                  <%= select_tag :unidad_medida, options_for_select(ApplicationHelper::UNIDADES, "pza"), class: "form-select", disabled: true %>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Stock mínimo para alertas</label>
-                  <%= number_field_tag :stock_minimo, 0, class: "form-control", step: :any, min: 0, disabled: true %>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Categoría</label>
-                  <%= select_tag :categoria, options_for_select(Articulo::CATEGORIAS.sort), class: "form-select", include_blank: true, disabled: true %>
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                  <div class="form-check mb-2">
-                    <%= check_box_tag :es_cable, "1", false,
-                          class: "form-check-input",
-                          id: "entrada_es_cable",
-                          disabled: true,
-                          data: {
-                            entrada_item_form_target: "esCableCheckbox",
-                            action: "change->entrada-item-form#refresh"
-                          } %>
-                    <label class="form-check-label" for="entrada_es_cable">¿Es un cable/tramo/carrete?</label>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <%= render "movements/new_item_fields", show_precio: true, id_prefix: "entrada" %>
+            <%= render "movements/cable_fields" %>
 
-            <div class="border rounded p-3 mb-3 bg-light d-none" data-entrada-item-form-target="cableFields">
-              <h4 class="h6">Detalles del cable</h4>
-              <div class="row g-2">
-                <div class="col-md-6">
-                  <label class="form-label">Nombre de la punta/carrete/tramo</label>
-                  <%= text_field_tag :nombre_punta, nil, class: "form-control", placeholder: "e.g., Punta Cobre #2", disabled: true %>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Longitud (metros)</label>
-                  <%= number_field_tag :longitud, 0, class: "form-control", step: 0.1, min: 0, disabled: true %>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Color (opcional)</label>
-                  <%= text_field_tag :color, nil, class: "form-control", disabled: true %>
-                </div>
-              </div>
-            </div>
-
-            <div class="mb-0 d-none" data-entrada-item-form-target="quantityFields">
+            <div class="mb-0 d-none" data-item-form-target="quantityFields">
               <label class="form-label">Cantidad a agregar</label>
               <div class="col-md-4 px-0">
                 <%= number_field_tag :cantidad, 0, class: "form-control", step: :any, min: 0, disabled: true %>
