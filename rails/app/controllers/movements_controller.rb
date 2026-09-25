@@ -39,7 +39,7 @@ class MovementsController < ApplicationController
     item, error = build_item
     if error
       flash.now[:alert] = error
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
       return
     end
 
@@ -68,14 +68,14 @@ class MovementsController < ApplicationController
 
     if cart["items"].blank?
       flash.now[:alert] = "Debe agregar al menos un item"
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
       return
     end
 
     header_error = header_validation_error
     if header_error
       flash.now[:alert] = header_error
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
       return
     end
 
@@ -107,7 +107,7 @@ class MovementsController < ApplicationController
       cart["open"] = true
       flash.now[:alert] = result.error
       load_page_data
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
     end
   end
 

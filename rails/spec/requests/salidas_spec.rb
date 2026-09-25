@@ -138,7 +138,7 @@ RSpec.describe "Salidas", type: :request do
       .and_return(double(success?: false, error: "Sin stock suficiente"))
 
     expect { post salidas_path }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Sin stock suficiente")
 
     expect(cart["open"]).to eq(true)
@@ -161,7 +161,7 @@ RSpec.describe "Salidas", type: :request do
 
     finalize(responsable: "", id_proyecto: "")
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Debe agregar al menos un item")
   end
 
@@ -175,7 +175,7 @@ RSpec.describe "Salidas", type: :request do
     proyecto.destroy!
 
     expect { post salidas_path }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Proyecto es obligatorio")
   end
 
@@ -184,7 +184,7 @@ RSpec.describe "Salidas", type: :request do
     post start_salidas_path
 
     expect { add_item(cantidad: "99") }.not_to change { cart["items"].size }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("No hay suficiente stock")
   end
 
@@ -199,7 +199,7 @@ RSpec.describe "Salidas", type: :request do
     expect {
       add_item(id_articulo: cable.id_articulo, id_punta: punta.id_punta, cantidad: nil)
     }.not_to change { cart["items"].size }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Esa punta ya está en la salida actual")
   end
 
@@ -214,7 +214,7 @@ RSpec.describe "Salidas", type: :request do
     expect {
       add_item(id_articulo: cable.id_articulo, id_punta: punta.id_punta, cantidad: nil)
     }.not_to change { cart["items"].size }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Punta ya utilizada en una salida")
   end
 
@@ -231,7 +231,7 @@ RSpec.describe "Salidas", type: :request do
     post start_salidas_path
 
     expect { finalize }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(cart["pending_confirmation"]).to eq(false)
   end
 
@@ -241,7 +241,7 @@ RSpec.describe "Salidas", type: :request do
     add_item
 
     expect { finalize(responsable: "") }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(cart["pending_confirmation"]).to eq(false)
   end
 
@@ -251,7 +251,7 @@ RSpec.describe "Salidas", type: :request do
     add_item
 
     expect { finalize(id_proyecto: "") }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(cart["pending_confirmation"]).to eq(false)
   end
 

@@ -187,7 +187,7 @@ RSpec.describe "Entradas", type: :request do
       .and_return(double(success?: false, error: "Fallo al guardar"))
 
     expect { post entradas_path }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Fallo al guardar")
 
     expect(cart["open"]).to eq(true)
@@ -211,7 +211,7 @@ RSpec.describe "Entradas", type: :request do
     proyecto.destroy!
 
     expect { post entradas_path }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Proyecto es obligatorio")
   end
 
@@ -220,7 +220,7 @@ RSpec.describe "Entradas", type: :request do
     post start_entradas_path
 
     expect { add_new_item(nombre: "") }.not_to change { cart["items"].size }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Debe ingresar un nombre para el nuevo item")
   end
 
@@ -231,7 +231,7 @@ RSpec.describe "Entradas", type: :request do
     expect {
       add_new_item(nombre: "Cable Malo", es_cable: "1", nombre_punta: "", longitud: "0", cantidad: nil)
     }.not_to change { cart["items"].size }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Debe ingresar el nombre de la punta/carrete/tramo")
     expect(response.body).to include("La longitud del cable debe ser mayor a 0")
   end
@@ -249,7 +249,7 @@ RSpec.describe "Entradas", type: :request do
     post start_entradas_path
 
     expect { finalize }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(cart["pending_confirmation"]).to eq(false)
   end
 
@@ -259,7 +259,7 @@ RSpec.describe "Entradas", type: :request do
     add_new_item
 
     expect { finalize(responsable: "") }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(cart["pending_confirmation"]).to eq(false)
   end
 
@@ -269,7 +269,7 @@ RSpec.describe "Entradas", type: :request do
     add_new_item
 
     expect { finalize(id_proyecto: "") }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(cart["pending_confirmation"]).to eq(false)
   end
 

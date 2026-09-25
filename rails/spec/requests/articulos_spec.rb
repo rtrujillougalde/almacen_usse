@@ -61,7 +61,7 @@ RSpec.describe "Articulos", type: :request do
 
       patch articulo_path(articulo), params: { articulo: { nombre: "" } }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(articulo.reload.nombre).to eq("Tornillo")
     end
 
@@ -72,7 +72,7 @@ RSpec.describe "Articulos", type: :request do
         articulo: { nombre: articulo.nombre, cantidad_en_stock: 99 }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Solo un administrador puede cambiar stock o longitudes.")
       expect(articulo.reload.cantidad_en_stock).to eq(10)
     end
@@ -102,7 +102,7 @@ RSpec.describe "Articulos", type: :request do
         }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(punta.reload.longitud).to eq(25.5)
       expect(cable.reload.cantidad_en_stock).to eq(25.5)
     end

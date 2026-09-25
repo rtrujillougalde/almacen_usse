@@ -13,7 +13,7 @@ class ProyectosController < ApplicationController
     else
       @proyectos = Proyecto.order(:c_c)
       flash.now[:alert] = @proyecto.errors.full_messages.to_sentence
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
     end
   end
 

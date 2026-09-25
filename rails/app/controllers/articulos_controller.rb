@@ -17,7 +17,7 @@ class ArticulosController < ApplicationController
 
     if (stock_changed || longitud_changed) && !current_user.admin?
       flash.now[:alert] = "Solo un administrador puede cambiar stock o longitudes."
-      return render :edit, status: :unprocessable_entity
+      return render :edit, status: :unprocessable_content
     end
 
     ActiveRecord::Base.transaction do
@@ -32,7 +32,7 @@ class ArticulosController < ApplicationController
     redirect_to inventario_path, notice: "Artículo actualizado."
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    render :edit, status: :unprocessable_entity
+    render :edit, status: :unprocessable_content
   end
 
   private

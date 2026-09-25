@@ -103,7 +103,7 @@ RSpec.describe "Compras", type: :request do
     start_compra
 
     expect { add_new_item(precio_unitario: "") }.not_to change { session[:compra_cart]["items"].size }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Precio unitario es obligatorio")
   end
 
@@ -115,7 +115,7 @@ RSpec.describe "Compras", type: :request do
     expect {
       post finalize_compras_path, params: { responsable: "Op" }
     }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Proyecto es obligatorio")
   end
 
@@ -151,7 +151,7 @@ RSpec.describe "Compras", type: :request do
       .and_return(double(success?: false, error: "Fallo al guardar"))
 
     expect { post compras_path }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Fallo al guardar")
 
     expect(session[:compra_cart]["open"]).to eq(true)
@@ -173,7 +173,7 @@ RSpec.describe "Compras", type: :request do
     add_new_item
 
     expect { finalize_compra(responsable: "") }.not_to change(Movimiento, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Responsable es obligatorio")
     expect(session[:compra_cart]["pending_confirmation"]).to eq(false)
   end
