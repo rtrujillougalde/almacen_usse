@@ -28,7 +28,7 @@ class SalidasController < ApplicationController
       return
     end
 
-    cart["items"] << item
+    cart["items"] << item.to_h
     redirect_to salidas_path, notice: "Item agregado a la salida."
   end
 
@@ -104,6 +104,10 @@ class SalidasController < ApplicationController
 
   private
 
+  def build_salida_item
+    Movimientos::SalidaItemBuilder.call(params, cart_items: cart["items"])
+  end
+
   def cart_key
     :salida_cart
   end
@@ -126,64 +130,5 @@ class SalidasController < ApplicationController
                         .includes(:proyecto, detalle_movimientos: [ :articulo, :stock_punta ])
                         .order(fecha_hora: :desc)
                         .limit(6)
-  end
-
-  def build_salida_item
-    id = params[:id_articulo]
-    return [ nil, "Debe seleccionar un item" ] if id.blank?
-
-    articulo = Articulo.find_by(id_articulo: id)
-    return [ nil, "Artículo no encontrado" ] unless articulo
-
-    if articulo.es_cable?
-      id_punta = params[:id_punta].presence
-      return [ nil, "Debe seleccionar una punta/carrete/tramo" ] if id_punta.blank?
-
-      punta = StockPunta.find_by(id_punta: id_punta)
-      return [ nil, "Punta no encontrada" ] unless punta
-      return [ nil, "Punta no pertenece al artículo" ] unless punta.id_articulo == articulo.id_articulo
-      return [ nil, "Punta ya utilizada en una salida" ] unless StockPunta.available.exists?(id_punta: punta.id_punta)
-
-      if cart["items"].any? { |i| i["id_punta"].to_s == punta.id_punta.to_s }
-        return [ nil, "Esa punta ya está en la salida actual" ]
-      end
-
-      item = {
-        "nombre_item" => articulo.nombre,
-        "id_articulo" => articulo.id_articulo,
-        "es_cable" => true,
-        "cantidad" => 0,
-        "id_punta" => punta.id_punta,
-        "nombre_punta" => punta.nombre_punta,
-        "longitud" => punta.longitud.to_f
-      }
-    else
-      cantidad = params[:cantidad].to_f
-      stock = articulo.cantidad_en_stock.to_f
-      errors = []
-      errors << "La cantidad debe ser mayor a 0" if cantidad <= 0
-      errors << "No hay suficiente stock (disponible: #{stock})" if cantidad > stock
-      return [ nil, errors.join(". ") ] if errors.any?
-
-      item = {
-        "nombre_item" => articulo.nombre,
-        "id_articulo" => articulo.id_articulo,
-        "es_cable" => false,
-        "cantidad" => cantidad,
-        "id_punta" => nil
-      }
-    end
-
-    [ item, nil ]
-  end
-
-  def cart_items_for_service
-    cart["items"].map do |item|
-      {
-        id_articulo: item["id_articulo"],
-        cantidad: item["cantidad"],
-        id_punta: item["id_punta"]
-      }
-    end
   end
 end

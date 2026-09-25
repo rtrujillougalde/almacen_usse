@@ -37,6 +37,10 @@ module MovementCartConcern
     cart["observaciones"] = params[:observaciones].to_s
   end
 
+  def cart_items_for_service
+    cart["items"].map { |item| Movimientos::CartItem.new(item).to_service_args }
+  end
+
   def load_common_form_data!
     @proyectos = Proyecto.order(:c_c)
     @cart = cart
