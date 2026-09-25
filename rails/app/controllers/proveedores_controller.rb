@@ -1,5 +1,5 @@
 class ProveedoresController < ApplicationController
-  before_action -> { authorize_page!("proveedores") }
+  before_action :authorize_page!
   before_action :set_proveedor, only: %i[edit update]
 
   def index

@@ -1,5 +1,5 @@
 class InventarioController < ApplicationController
-  before_action -> { authorize_page!("inventario") }
+  before_action :authorize_page!
 
   def index
     scope = Articulo.includes(:proveedor_record).order(:nombre)

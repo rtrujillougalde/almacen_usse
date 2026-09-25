@@ -1,5 +1,5 @@
 class ReportesController < ApplicationController
-  before_action -> { authorize_page!("reportes") }
+  before_action :authorize_page!
 
   helper_method :filter_params
 

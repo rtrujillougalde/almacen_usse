@@ -1,5 +1,5 @@
 class ProyectosController < ApplicationController
-  before_action -> { authorize_page!("proyectos") }
+  before_action :authorize_page!
 
   def index
     @proyectos = Proyecto.order(:c_c)
