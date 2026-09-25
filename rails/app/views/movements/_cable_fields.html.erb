@@ -1,0 +1,17 @@
+<div class="border rounded p-3 mb-3 bg-light d-none" data-item-form-target="cableFields">
+  <h4 class="h6">Detalles del cable</h4>
+  <div class="row g-2">
+    <div class="col-md-6">
+      <label class="form-label">Nombre de la punta/carrete/tramo</label>
+      <%= text_field_tag :nombre_punta, nil, class: "form-control", placeholder: "e.g., Punta Cobre #2", disabled: true %>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Longitud (metros)</label>
+      <%= number_field_tag :longitud, 0, class: "form-control", step: 0.1, min: 0, disabled: true %>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Color (opcional)</label>
+      <%= text_field_tag :color, nil, class: "form-control", disabled: true %>
+    </div>
+  </div>
+</div>

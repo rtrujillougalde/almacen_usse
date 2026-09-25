@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Toggles entrada item fields like the Streamlit form:
+// Toggles the item fields on the entrada and compra forms:
 // - "Otro (escribir nuevo)" → new-item fields + optional cable details
 // - existing cable → punta/longitud/color
 // - existing non-cable → cantidad only
