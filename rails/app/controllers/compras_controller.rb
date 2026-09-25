@@ -64,6 +64,6 @@ class ComprasController < MovementsController
 
   def load_page_data
     super
-    @proveedores = Proveedor.order(:nombre)
+    @proveedores = Proveedor.alphabetical
   end
 end

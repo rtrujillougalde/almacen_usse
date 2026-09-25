@@ -47,6 +47,7 @@ RSpec.describe "Entrada flow", type: :system do
     fill_in "longitud", with: "20"
     click_button "Agregar item"
 
+    expect(page).to have_content("Item agregado a la entrada")
     expect(page).to have_content("Carrete 7")
 
     click_button "Finalizar entrada"

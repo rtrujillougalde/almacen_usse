@@ -42,6 +42,29 @@ class Articulo < ApplicationRecord
   validates :nombre, presence: true
   validates :categoria, inclusion: { in: CATEGORIAS }, allow_nil: true
 
+  # The inventario filters offer an "everything" option; selecting it is the
+  # same as not filtering, which is also what a blank param means.
+  ALL_CATEGORIAS = "Todas".freeze
+  ALL_TIPOS = "Todos".freeze
+
+  scope :alphabetical, -> { order(:nombre) }
+
+  scope :with_categoria, ->(value) {
+    where(categoria: value) if value.present? && value != ALL_CATEGORIAS
+  }
+
+  scope :with_tipo, ->(value) {
+    where(tipo: value) if value.present? && value != ALL_TIPOS
+  }
+
+  # % and _ are LIKE wildcards, so an unescaped search for "50%" matches every
+  # articulo starting with 50, and "a_b" matches "axb".
+  scope :nombre_matching, ->(term) {
+    if term.present?
+      where("LOWER(nombre) LIKE ?", "%#{sanitize_sql_like(term.to_s.downcase)}%")
+    end
+  }
+
   def low_stock?
     return false if cantidad_en_stock.nil? || stock_minimo.nil?
 

@@ -190,7 +190,7 @@ class MovementsController < ApplicationController
     @form_open = cart["open"] && !cart["pending_confirmation"]
     @pending_confirmation = cart["pending_confirmation"]
     @cart_items = cart["items"] || []
-    @articulos = Articulo.order(:nombre)
+    @articulos = Articulo.alphabetical
     @recent = recent_movimientos
   end
 

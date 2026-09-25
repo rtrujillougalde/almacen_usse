@@ -3,12 +3,12 @@ class ArticulosController < ApplicationController
   before_action :set_articulo
 
   def edit
-    @proveedores = Proveedor.order(:nombre)
+    @proveedores = Proveedor.alphabetical
     @available_puntas = @articulo.stock_puntas.merge(StockPunta.available).order(:id_punta)
   end
 
   def update
-    @proveedores = Proveedor.order(:nombre)
+    @proveedores = Proveedor.alphabetical
     @available_puntas = @articulo.stock_puntas.merge(StockPunta.available).order(:id_punta)
 
     stock_changed = stock_fields_changed?

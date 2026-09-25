@@ -45,6 +45,10 @@ RSpec.describe "Salida flow", type: :system do
     select "#{punta.nombre_punta} (#{punta.longitud}m)", from: "id_punta"
     click_button "Agregar item"
 
+    # The flash, not the punta name: "Carrete 3" also labels the dropdown
+    # option on the page before the item is added, so waiting on it would let
+    # the next click land on the stale page.
+    expect(page).to have_content("Item agregado a la salida")
     expect(page).to have_content("Carrete 3")
 
     click_button "Finalizar salida"
