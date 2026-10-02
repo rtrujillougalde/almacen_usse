@@ -30,7 +30,7 @@ RSpec.describe "Proyectos", type: :request do
           proyecto: { c_c: 8888, nombre_obra: "Dup", encargado: "Luis" }
         }
       }.not_to change(Proyecto, :count)
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
     it "creates a proyecto with alphanumeric c_c" do
       expect {

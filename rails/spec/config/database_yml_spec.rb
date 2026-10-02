@@ -26,7 +26,7 @@ RSpec.describe "config/database.yml" do
   end
 
   it "puts MYSQLDATABASE on a Railway URL that omitted the path" do
-    originals = %w[DATABASE_URL CACHE_DATABASE_URL MYSQLDATABASE].to_h { |key| [key, ENV[key]] }
+    originals = %w[DATABASE_URL CACHE_DATABASE_URL MYSQLDATABASE].to_h { |key| [ key, ENV[key] ] }
     ENV["DATABASE_URL"] = "mysql://user:pass@host:3306"
     ENV.delete("CACHE_DATABASE_URL")
     ENV["MYSQLDATABASE"] = "inventory"

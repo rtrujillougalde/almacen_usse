@@ -1,0 +1,18 @@
+<div class="card shadow-sm border-0 border-warning mb-4">
+  <div class="card-header bg-white border-0 pt-3 pb-0">
+    <h2 class="h5 mb-0">Confirmar <%= noun %></h2>
+  </div>
+  <div class="card-body">
+    <p class="text-secondary">Revisa los ítems que se registrarán:</p>
+    <div class="mb-4">
+      <%= render "movements/cart_table",
+            items: items,
+            show_precio: local_assigns[:show_precio],
+            moneda: local_assigns[:moneda] %>
+    </div>
+    <div class="d-flex gap-2">
+      <%= button_to "Aceptar", accept_path, method: :post, class: "btn btn-primary" %>
+      <%= button_to "Cancelar", dismiss_path, method: :delete, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+</div>

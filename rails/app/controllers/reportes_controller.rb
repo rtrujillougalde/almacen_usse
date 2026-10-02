@@ -1,5 +1,10 @@
 class ReportesController < ApplicationController
-  before_action -> { authorize_page!("reportes") }
+  # "utilizado" is derived from the movements rather than being one of them,
+  # so it is a valid report kind but not a movement kind.
+  MOVEMENT_KINDS = %w[entrada salida compra].freeze
+  KINDS = (MOVEMENT_KINDS + %w[utilizado]).freeze
+
+  before_action :authorize_page!
 
   helper_method :filter_params
 
@@ -34,7 +39,7 @@ class ReportesController < ApplicationController
                          alert: "Debes seleccionar un Centro de Costos para generar el reporte."
     end
 
-    unless %w[entrada salida compra utilizado].include?(@kind)
+    unless KINDS.include?(@kind)
       return redirect_to reportes_path(filter_params), alert: "Tipo de reporte inválido."
     end
 
@@ -49,7 +54,7 @@ class ReportesController < ApplicationController
   def download
     load_filters_from_params!
 
-    unless @cc && %w[entrada salida compra utilizado].include?(@kind)
+    unless @cc && KINDS.include?(@kind)
       redirect_to reportes_path, alert: "Parámetros de reporte inválidos."
       return
     end
@@ -60,36 +65,19 @@ class ReportesController < ApplicationController
       return
     end
 
-    format = params[:file_format].presence || "pdf"
-    report_type = @kind
+    export = Reportes::Export.call(
+      kind: @kind,
+      cc: @cc,
+      rows: rows,
+      format: params[:file_format].presence || "pdf",
+      date_from: @date_from,
+      date_to: @date_to
+    )
 
-    if format == "pdf"
-      pdf =
-        if @kind == "utilizado"
-          Reportes::PdfGenerator.utilizado(cc: @cc, groups: rows)
-        else
-          Reportes::PdfGenerator.movement(movement_type: @kind, cc: @cc, rows: rows)
-        end
-      send_data pdf,
-                filename: Reportes::Filename.build(
-                  report_type: report_type, date_from: @date_from, date_to: @date_to, cc: @cc, extension: "pdf"
-                ),
-                type: "application/pdf",
-                disposition: "attachment"
-    else
-      xlsx =
-        if @kind == "utilizado"
-          Reportes::ExcelGenerator.utilizado(groups: rows)
-        else
-          Reportes::ExcelGenerator.movement(movement_type: @kind, rows: rows)
-        end
-      send_data xlsx,
-                filename: Reportes::Filename.build(
-                  report_type: report_type, date_from: @date_from, date_to: @date_to, cc: @cc, extension: "xlsx"
-                ),
-                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                disposition: "attachment"
-    end
+    send_data export[:data],
+              filename: export[:filename],
+              type: export[:type],
+              disposition: "attachment"
   end
 
   private
@@ -123,7 +111,7 @@ class ReportesController < ApplicationController
 
   def fetch_rows
     case @kind
-    when "entrada", "salida", "compra"
+    when *MOVEMENT_KINDS
       Reportes::Query.movement_rows(
         cc: @cc, movement_type: @kind, date_from: @date_from, date_to: @date_to
       ).to_a

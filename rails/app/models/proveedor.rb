@@ -8,6 +8,8 @@ class Proveedor < ApplicationRecord
 
   validates :nombre, presence: true
 
+  scope :alphabetical, -> { order(:nombre) }
+
   before_create :assign_id_proveedor
 
   private
