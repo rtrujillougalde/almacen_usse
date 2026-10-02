@@ -32,12 +32,21 @@
                     include_blank: "Selecciona...",
                     class: "form-select" %>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6" data-controller="entrega-policy">
               <label class="form-label">Proveedor</label>
-              <%= select_tag :id_proveedor,
-                    options_from_collection_for_select(@proveedores, :id_proveedor, :nombre, @cart["id_proveedor"]),
-                    include_blank: "Selecciona...",
-                    class: "form-select" %>
+              <select name="id_proveedor" class="form-select"
+                      data-entrega-policy-target="select"
+                      data-action="change->entrega-policy#refresh">
+                <option value="">Selecciona...</option>
+                <% @proveedores.each do |p| %>
+                  <option value="<%= p.id_proveedor %>"
+                          data-entrega="<%= p.entrega_resumen %>"
+                          <%= "selected" if @cart["id_proveedor"].to_s == p.id_proveedor.to_s %>>
+                    <%= p.nombre %>
+                  </option>
+                <% end %>
+              </select>
+              <p class="form-text d-none mb-0" data-entrega-policy-target="summary"></p>
             </div>
           </div>
           <div class="row g-3">
