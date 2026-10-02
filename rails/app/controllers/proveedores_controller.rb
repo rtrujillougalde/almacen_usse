@@ -37,6 +37,9 @@ class ProveedoresController < ApplicationController
   end
 
   def proveedor_params
-    params.require(:proveedor).permit(:nombre, :telefono, :email, :pagina_web, :direccion, :contacto, :notas)
+    params.require(:proveedor).permit(
+      :nombre, :telefono, :email, :pagina_web, :direccion, :contacto, :notas,
+      :entrega_estado, :entrega_monto_minimo, :entrega_moneda
+    )
   end
 end
