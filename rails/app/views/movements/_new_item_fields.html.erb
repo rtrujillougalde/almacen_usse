@@ -1,0 +1,56 @@
+<%#
+  Details for an articulo that does not exist yet. Every field ships disabled
+  and hidden; the item-form Stimulus controller enables them when "Otro
+  (escribir nuevo)" is selected, so a hidden field never reaches the server.
+
+  Compras carry their precio outside this block, next to the cantidad, because
+  it applies to existing articulos too.
+%>
+<div class="border rounded p-3 mb-3 bg-light d-none" data-item-form-target="newFields">
+  <h4 class="h6">Detalles del nuevo item</h4>
+  <div class="row g-2">
+    <div class="col-md-6">
+      <label class="form-label">Nombre del nuevo item</label>
+      <%= text_field_tag :nombre, nil, class: "form-control", disabled: true %>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Número de catálogo</label>
+      <%= text_field_tag :num_catalogo, nil, class: "form-control", disabled: true %>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Tipo de item</label>
+      <%= select_tag :tipo, options_for_select(%w[material herramienta]), class: "form-select", disabled: true %>
+    </div>
+    <% if local_assigns[:show_precio] %>
+      <div class="col-md-4">
+        <label class="form-label">Precio unitario</label>
+        <%= number_field_tag :precio_unitario, 0, class: "form-control", step: :any, min: 0, disabled: true %>
+      </div>
+    <% end %>
+    <div class="col-md-4">
+      <label class="form-label">Unidad de medida</label>
+      <%= select_tag :unidad_medida, options_for_select(ApplicationHelper::UNIDADES, "pza"), class: "form-select", disabled: true %>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Stock mínimo para alertas</label>
+      <%= number_field_tag :stock_minimo, 0, class: "form-control", step: :any, min: 0, disabled: true %>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Categoría</label>
+      <%= select_tag :categoria, options_for_select(Articulo::CATEGORIAS.sort), class: "form-select", include_blank: true, disabled: true %>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+      <div class="form-check mb-2">
+        <%= check_box_tag :es_cable, "1", false,
+              class: "form-check-input",
+              id: "#{id_prefix}_es_cable",
+              disabled: true,
+              data: {
+                item_form_target: "esCableCheckbox",
+                action: "change->item-form#refresh"
+              } %>
+        <label class="form-check-label" for="<%= id_prefix %>_es_cable">¿Es un cable/tramo/carrete?</label>
+      </div>
+    </div>
+  </div>
+</div>

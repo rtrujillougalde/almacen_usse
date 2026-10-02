@@ -1,0 +1,26 @@
+<div class="mb-3" data-controller="project-selector">
+  <label class="form-label">Selecciona un proyecto</label>
+  <select name="id_proyecto" class="form-select mb-3"
+          data-project-selector-target="select"
+          data-action="change->project-selector#refresh">
+    <option value="">Selecciona...</option>
+    <% proyectos.each do |p| %>
+      <option value="<%= p.id_proyecto %>"
+              data-cc="<%= p.c_c %>"
+              data-obra="<%= p.nombre_obra %>"
+              <%= "selected" if selected.to_s == p.id_proyecto.to_s %>>
+        <%= p.nombre_obra_with_cc %>
+      </option>
+    <% end %>
+  </select>
+  <div class="row g-3 d-none" data-project-selector-target="metrics">
+    <div class="col-sm-6">
+      <div class="small text-secondary mb-1">Centro de costo</div>
+      <span class="badge badge-usse fs-6" data-project-selector-target="cc"></span>
+    </div>
+    <div class="col-sm-6">
+      <div class="small text-secondary mb-1">Obra</div>
+      <div class="fw-semibold" data-project-selector-target="obra"></div>
+    </div>
+  </div>
+</div>

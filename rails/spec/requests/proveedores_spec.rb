@@ -43,7 +43,7 @@ RSpec.describe "Proveedores", type: :request do
       expect {
         post proveedores_path, params: { proveedor: { nombre: "" } }
       }.not_to change(Proveedor, :count)
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 

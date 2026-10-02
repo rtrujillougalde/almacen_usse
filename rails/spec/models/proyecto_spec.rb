@@ -21,12 +21,12 @@ RSpec.describe Proyecto, type: :model do
     proyecto = build(:proyecto, c_c: "CC-01/A")
     expect(proyecto).to be_valid
   end
-  
+
   it "strips whitespace from c_c" do
     proyecto = create(:proyecto, c_c: "  CC-01  ")
     expect(proyecto.c_c).to eq("CC-01")
   end
-  
+
   it "rejects c_c longer than 50" do
     proyecto = build(:proyecto, c_c: "A" * 51)
     expect(proyecto).not_to be_valid
