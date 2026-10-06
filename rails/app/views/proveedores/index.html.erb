@@ -14,6 +14,7 @@
             <th>Email</th>
             <th>Contacto</th>
             <th>Entrega</th>
+            <th>Notas</th>
             <th></th>
           </tr>
         </thead>
@@ -25,13 +26,14 @@
               <td><%= p.email %></td>
               <td><%= p.contacto %></td>
               <td><%= p.entrega_resumen %></td>
+              <td><%= p.notas %></td>
               <td class="text-end">
                 <%= link_to "Editar", edit_proveedor_path(p), class: "btn btn-sm btn-outline-secondary" %>
               </td>
             </tr>
           <% end %>
           <% if @proveedores.empty? %>
-            <tr><td colspan="6" class="text-center text-secondary py-4">No hay proveedores.</td></tr>
+            <tr><td colspan="7" class="text-center text-secondary py-4">No hay proveedores.</td></tr>
           <% end %>
         </tbody>
       </table>

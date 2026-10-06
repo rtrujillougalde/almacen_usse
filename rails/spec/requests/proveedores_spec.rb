@@ -23,6 +23,12 @@ RSpec.describe "Proveedores", type: :request do
       get proveedores_path
       expect(response.body).to include("Desde $1500.00 MXN")
     end
+
+    it "shows notas" do
+      create(:proveedor, nombre: "Notas SA", notas: "Zona norte sin entrega")
+      get proveedores_path
+      expect(response.body).to include("Zona norte sin entrega")
+    end
   end
 
   describe "POST /proveedores" do
