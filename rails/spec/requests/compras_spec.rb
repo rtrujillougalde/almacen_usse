@@ -193,6 +193,16 @@ RSpec.describe "Compras", type: :request do
     expect(response.body).to include(proveedor.nombre)
   end
 
+  it "includes the supplier delivery minimum on the proveedor option" do
+    sign_in_as(:operador)
+    proveedor.update!(entrega_estado: "ofrecida", entrega_monto_minimo: 1500, entrega_moneda: "MXN")
+    start_compra
+
+    get compras_path
+
+    expect(response.body).to include('data-entrega="Desde $1500.00 MXN"')
+  end
+
   it "forbids consulta from compras" do
     sign_in_as(:consulta)
     get compras_path
