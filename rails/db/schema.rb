@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_02_115400) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_122000) do
   create_table "articulos", primary_key: "id_articulo", id: :integer, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.column "almacen", "enum('oficina','uno','dos','tres','dormitorios')"
     t.float "cantidad_en_stock"
@@ -44,7 +44,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_115400) do
     t.integer "id_proyecto"
     t.string "moneda", limit: 3
     t.text "observaciones"
-    t.string "responsable", limit: 45
+    t.string "responsable", limit: 100
     t.column "tipo", "enum('entrada','salida','compra')", null: false
     t.index ["id_proveedor"], name: "index_movimientos_on_id_proveedor"
     t.index ["id_proyecto"], name: "index_movimientos_on_id_proyecto"

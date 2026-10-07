@@ -34,6 +34,12 @@ RSpec.describe Movimiento, type: :model do
     end
   end
 
+  it "rejects a responsable longer than 100 characters" do
+    mov = build(:movimiento, :compra, proyecto: proyecto, moneda: "MXN", proveedor: proveedor, responsable: "a" * 101)
+    expect(mov).not_to be_valid
+    expect(mov.errors[:responsable]).to be_present
+  end
+
   it "rejects unknown moneda on compra" do
     mov = build(:movimiento, :compra, proyecto: proyecto, moneda: "EUR", proveedor: proveedor)
     expect(mov).not_to be_valid

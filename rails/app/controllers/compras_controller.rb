@@ -49,6 +49,10 @@ class ComprasController < MovementsController
   end
 
   def header_validation_error
+    if cart["responsable"].to_s.length > Movimiento::RESPONSABLE_MAX_LENGTH
+      return "El responsable no puede tener más de #{Movimiento::RESPONSABLE_MAX_LENGTH} caracteres"
+    end
+
     return "Responsable es obligatorio" if cart["responsable"].to_s.strip.blank?
     return "Proyecto es obligatorio" if cart["id_proyecto"].blank?
     return "Moneda es obligatoria" if cart["moneda"].blank?
