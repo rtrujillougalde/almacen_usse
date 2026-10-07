@@ -25,6 +25,13 @@ RSpec.describe Movimientos::CreateCompra do
     )
   end
 
+  it "fails when responsable is longer than 100 characters" do
+    expect {
+      result = call_service(responsable: "a" * 101)
+      expect(result.success?).to eq(false)
+    }.not_to change(Movimiento, :count)
+  end
+
   it "fails without responsable" do
     expect {
       result = call_service(responsable: "")

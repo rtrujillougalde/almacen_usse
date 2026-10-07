@@ -178,6 +178,30 @@ RSpec.describe "Compras", type: :request do
     expect(session[:compra_cart]["pending_confirmation"]).to eq(false)
   end
 
+  it "commits a compra when responsable is 100 characters" do
+    sign_in_as(:operador)
+    start_compra
+    add_new_item
+    finalize_compra(responsable: "a" * 100)
+
+    expect { post compras_path }.to change(Movimiento, :count).by(1)
+    expect(Movimiento.last.responsable).to eq("a" * 100)
+  end
+
+  it "warns and does not commit a compra when responsable is longer than 100 characters" do
+    sign_in_as(:operador)
+    start_compra
+    add_new_item
+
+    expect { finalize_compra(responsable: "a" * 101) }.not_to change(Movimiento, :count)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("El responsable no puede tener más de 100 caracteres")
+    expect(session[:compra_cart]["pending_confirmation"]).to eq(false)
+
+    expect { post compras_path }.not_to change(Movimiento, :count)
+    expect(response).not_to have_http_status(:internal_server_error)
+  end
+
   it "shows precio unitario in recent compras" do
     sign_in_as(:operador)
     movimiento = create(:movimiento, :compra, proyecto: proyecto, proveedor: proveedor, moneda: "USD")

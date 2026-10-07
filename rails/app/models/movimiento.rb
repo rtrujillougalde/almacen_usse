@@ -10,10 +10,13 @@ class Movimiento < ApplicationRecord
   enum :tipo, { entrada: "entrada", salida: "salida", compra: "compra" }, validate: true
 
   MONEDAS = %w[MXN USD].freeze
+  RESPONSABLE_MAX_LENGTH = 100
 
   validates :tipo, presence: true
   validates :proyecto, :moneda, :proveedor, presence: true, if: :compra?
   validates :moneda, inclusion: { in: MONEDAS }, allow_nil: true
+  # Rejects before INSERT. A too-long value used to raise ValueTooLong and 500.
+  validates :responsable, length: { maximum: RESPONSABLE_MAX_LENGTH }
 
   before_validation :set_fecha_hora, on: :create
 
