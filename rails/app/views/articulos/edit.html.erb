@@ -15,11 +15,15 @@
       </div>
 
       <div class="row">
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
           <%= f.label :tipo, class: "form-label" %>
           <%= f.select :tipo, Articulo.tipos.keys, {}, class: "form-select" %>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
+          <%= f.label :categoria, class: "form-label" %>
+          <%= f.select :categoria, Articulo::CATEGORIAS, { include_blank: true }, class: "form-select" %>
+        </div>
+        <div class="col-md-4 mb-3">
           <%= f.label :unidad_medida, class: "form-label" %>
           <%= f.select :unidad_medida, ApplicationHelper::UNIDADES, { include_blank: true }, class: "form-select" %>
         </div>

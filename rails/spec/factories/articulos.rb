@@ -6,12 +6,14 @@ FactoryBot.define do
     stock_minimo { 2 }
     unidad_medida { "pza" }
     precio_unitario { 100 }
+    categoria { "general" }
     es_cable { false }
     association :proveedor_record, factory: :proveedor
 
     trait :cable do
       es_cable { true }
       unidad_medida { "m" }
+      categoria { "cables" }
       cantidad_en_stock { 0 }
     end
 

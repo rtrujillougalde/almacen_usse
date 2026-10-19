@@ -44,7 +44,7 @@ class ArticulosController < ApplicationController
   def articulo_params
     params.require(:articulo).permit(
       :nombre, :num_catalogo, :cantidad_en_stock, :unidad_medida, :stock_minimo,
-      :tipo, :es_cable, :almacen, :ubicacion, :proveedor, :precio_unitario
+      :tipo, :categoria, :es_cable, :almacen, :ubicacion, :proveedor, :precio_unitario
     )
   end
 

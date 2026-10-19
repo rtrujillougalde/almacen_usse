@@ -18,6 +18,7 @@ RSpec.describe "Compra flow", type: :system do
     select "Otro (escribir nuevo)", from: "id_articulo"
     fill_in "nombre", with: "Taladro"
     select "herramienta", from: "tipo"
+    select "general", from: "categoria"
     fill_in "cantidad", with: "2"
     fill_in "precio_unitario", with: "1250.50"
     click_button "Agregar item"
