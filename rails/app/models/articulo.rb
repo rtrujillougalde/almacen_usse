@@ -24,10 +24,11 @@ class Articulo < ApplicationRecord
     dormitorios: "dormitorios"
   }, validate: { allow_nil: true }
   enum :ubicacion, {
-    nivel_1: "nivel_1",
-    nivel_2: "nivel_2",
-    planta_baja: "planta_baja",
-    estante_compras: "estante_compras"
+    "nivel 1" => "nivel 1",
+    "nivel 1-aire acondicionado" => "nivel 1-aire acondicionado",
+    "nivel 2" => "nivel 2",
+    "planta baja" => "planta baja",
+    "estante compras" => "estante compras"
   }, validate: { allow_nil: true }
 
   validates :nombre, presence: true
