@@ -25,6 +25,7 @@ class Articulo < ApplicationRecord
   }, validate: { allow_nil: true }
   enum :ubicacion, {
     nivel_1: "nivel_1",
+    nivel_1_AA: "nivel_1_AA",
     nivel_2: "nivel_2",
     planta_baja: "planta_baja",
     estante_compras: "estante_compras"
