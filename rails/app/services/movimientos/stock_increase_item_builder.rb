@@ -40,7 +40,6 @@ module Movimientos
         "tipo" => params[:tipo].presence || "material",
         "precio_unitario" => params[:precio_unitario],
         "unidad_medida" => params[:unidad_medida],
-        "categoria" => params[:categoria],
         "stock_minimo" => params[:stock_minimo],
         "es_cable" => es_cable,
         "nombre_punta" => params[:nombre_punta].to_s,

@@ -28,7 +28,6 @@ RSpec.describe "Compras", type: :request do
       tipo: "material",
       cantidad: "4",
       unidad_medida: "pza",
-      categoria: "general",
       precio_unitario: precio_unitario
     }
   end

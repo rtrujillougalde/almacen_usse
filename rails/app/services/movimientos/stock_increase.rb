@@ -32,7 +32,6 @@ module Movimientos
         tipo: item[:tipo].presence || "material",
         precio_unitario: precio,
         unidad_medida: item[:unidad_medida],
-        categoria: item[:categoria],
         stock_minimo: item[:stock_minimo],
         es_cable: es_cable,
         cantidad_en_stock: cantidad
