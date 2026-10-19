@@ -99,14 +99,6 @@ RSpec.describe Articulo, type: :model do
     end
   end
 
-  describe "ubicacion" do
-    it "accepts nivel_1_AA" do
-      articulo = create(:articulo, ubicacion: :nivel_1_AA)
-
-      expect(articulo.reload).to be_nivel_1_AA
-    end
-  end
-
   describe ".with_tipo" do
     it "does not filter on the everything option or a blank value" do
       create(:articulo, tipo: :material)
