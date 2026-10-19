@@ -14,6 +14,7 @@ RSpec.describe "Entrada flow", type: :system do
 
     select "Otro (escribir nuevo)", from: "id_articulo"
     fill_in "nombre", with: "Cinta Aislante"
+    select "general", from: "categoria"
     fill_in "cantidad", with: "6"
     click_button "Agregar item"
 

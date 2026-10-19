@@ -15,7 +15,8 @@ RSpec.describe "Entradas", type: :request do
       nombre: "Item Entrada",
       tipo: "material",
       cantidad: "4",
-      unidad_medida: "pza"
+      unidad_medida: "pza",
+      categoria: "general"
     }.merge(params)
   end
 
@@ -59,6 +60,7 @@ RSpec.describe "Entradas", type: :request do
       longitud: "50",
       color: "rojo",
       unidad_medida: "m",
+      categoria: "cables",
       cantidad: nil
     )
     expect(cart["items"].size).to eq(1)

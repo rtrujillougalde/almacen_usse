@@ -31,6 +31,7 @@ RSpec.describe Movimientos::CreateEntrada do
         tipo: "material",
         cantidad: 10,
         unidad_medida: "pza",
+        categoria: "tornilleria",
         stock_minimo: 2,
         es_cable: false,
         precio_unitario: 1.5
@@ -55,7 +56,8 @@ RSpec.describe Movimientos::CreateEntrada do
         nombre_punta: "Bobina 1",
         longitud: 33,
         color: "rojo",
-        unidad_medida: "m"
+        unidad_medida: "m",
+        categoria: "cables"
       } ]
     )
 
