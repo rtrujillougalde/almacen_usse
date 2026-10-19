@@ -99,22 +99,35 @@ RSpec.describe Articulo, type: :model do
     end
   end
 
-  describe ".with_categoria and .with_tipo" do
-    it "does not filter on the everything option or a blank value" do
-      create(:articulo, categoria: "cables", tipo: :material)
-      create(:articulo, categoria: "general", tipo: :herramienta)
+  describe "ubicacion" do
+    it "accepts the spaced values, including nivel 1-aire acondicionado" do
+      expect(described_class.ubicacions.keys).to eq([
+        "nivel 1",
+        "nivel 1-aire acondicionado",
+        "nivel 2",
+        "planta baja",
+        "estante compras"
+      ])
 
-      expect(described_class.with_categoria(Articulo::ALL_CATEGORIAS).count).to eq(2)
+      articulo = create(:articulo, ubicacion: "nivel 1-aire acondicionado")
+      expect(articulo.reload.ubicacion).to eq("nivel 1-aire acondicionado")
+    end
+  end
+
+  describe ".with_tipo" do
+    it "does not filter on the everything option or a blank value" do
+      create(:articulo, tipo: :material)
+      create(:articulo, tipo: :herramienta)
+
       expect(described_class.with_tipo(Articulo::ALL_TIPOS).count).to eq(2)
-      expect(described_class.with_categoria(nil).with_tipo("").count).to eq(2)
+      expect(described_class.with_tipo("").count).to eq(2)
     end
 
     it "filters on a concrete value" do
-      cable = create(:articulo, categoria: "cables", tipo: :material)
-      create(:articulo, categoria: "general", tipo: :herramienta)
+      material = create(:articulo, tipo: :material)
+      create(:articulo, tipo: :herramienta)
 
-      expect(described_class.with_categoria("cables")).to contain_exactly(cable)
-      expect(described_class.with_tipo("material")).to contain_exactly(cable)
+      expect(described_class.with_tipo("material")).to contain_exactly(material)
     end
   end
 end

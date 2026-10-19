@@ -135,7 +135,7 @@ Define los modelos ORM de SQLAlchemy:
 - `Proyectos`
 - `StockPuntas`
 
-También contiene enums para categorías, tipos de artículo y tipos de movimiento.
+También contiene enums para tipos de artículo y tipos de movimiento.
 
 ### `src/data.py`
 Capa central de acceso a datos. Contiene:
@@ -145,7 +145,7 @@ Capa central de acceso a datos. Contiene:
 - Generación de reportes PDF y Excel
 
 ### `src/utils.py`
-Configura la conexión a MySQL y define constantes compartidas, como categorías y unidades de medida.
+Configura la conexión a MySQL y define constantes compartidas, como unidades de medida.
 
 ### `src/p_entradas.py`
 Interfaz para registrar entradas de inventario, incluyendo artículos nuevos y artículos tipo cable.

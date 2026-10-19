@@ -3,15 +3,6 @@ class Articulo < ApplicationRecord
   self.primary_key = "id_articulo"
   self.record_timestamps = false
 
-  CATEGORIAS = %w[
-    albañileria aire_acondicionado aislantes almacen_dormitorios alumbrado baterias c_d cables
-    calentadores canalizaciones charolas cinchos conductor contactos contactos_regulados
-    control_almacen control_acceso datos eléctrico equipo_medición equipo_protección fibra_óptica
-    fuse_panel fusibles gasolina general herramienta herrería interruptores kit_cursos limpieza
-    miscelaneos motores papelería pintura planta_emergencia plomeria racks referencia registros
-    regletas seguridad soportes tablaroca tableros tierras tornilleria zapatas
-  ].freeze
-
   # Association name must differ from the FK column `proveedor` (integer),
   # otherwise assign_attributes(proveedor: "1") raises AssociationTypeMismatch.
   belongs_to :proveedor_record,
@@ -33,25 +24,20 @@ class Articulo < ApplicationRecord
     dormitorios: "dormitorios"
   }, validate: { allow_nil: true }
   enum :ubicacion, {
-    nivel_1: "nivel_1",
-    nivel_2: "nivel_2",
-    planta_baja: "planta_baja",
-    estante_compras: "estante_compras"
+    "nivel 1" => "nivel 1",
+    "nivel 1-aire acondicionado" => "nivel 1-aire acondicionado",
+    "nivel 2" => "nivel 2",
+    "planta baja" => "planta baja",
+    "estante compras" => "estante compras"
   }, validate: { allow_nil: true }
 
   validates :nombre, presence: true
-  validates :categoria, inclusion: { in: CATEGORIAS }, allow_nil: true
 
-  # The inventario filters offer an "everything" option; selecting it is the
+  # The inventario filter offers an "everything" option; selecting it is the
   # same as not filtering, which is also what a blank param means.
-  ALL_CATEGORIAS = "Todas".freeze
   ALL_TIPOS = "Todos".freeze
 
   scope :alphabetical, -> { order(:nombre) }
-
-  scope :with_categoria, ->(value) {
-    where(categoria: value) if value.present? && value != ALL_CATEGORIAS
-  }
 
   scope :with_tipo, ->(value) {
     where(tipo: value) if value.present? && value != ALL_TIPOS

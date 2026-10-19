@@ -4,18 +4,14 @@
   <div class="card-body">
     <%= form_with url: inventario_path, method: :get, local: true, class: "row g-3 align-items-end" do %>
       <div class="col-md-3">
-        <label class="form-label">Categoría</label>
-        <%= select_tag :categoria, options_for_select(@categorias, params[:categoria] || "Todas"), class: "form-select" %>
-      </div>
-      <div class="col-md-3">
         <label class="form-label">Tipo</label>
         <%= select_tag :tipo, options_for_select(@tipos, params[:tipo] || "Todos"), class: "form-select" %>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-6">
         <label class="form-label">Nombre</label>
         <%= text_field_tag :nombre, params[:nombre], class: "form-control", placeholder: "Buscar..." %>
       </div>
-      <div class="col-md-2 d-flex gap-2">
+      <div class="col-md-3 d-flex gap-2">
         <%= submit_tag "Aplicar", class: "btn btn-primary" %>
         <%= link_to "Limpiar", inventario_path, class: "btn btn-outline-secondary" %>
       </div>
@@ -31,7 +27,6 @@
           <tr>
             <th>Nombre</th>
             <th>Tipo</th>
-            <th>Categoría</th>
             <th>Stock</th>
             <th>Mínimo</th>
             <th>Unidad</th>
@@ -44,7 +39,6 @@
             <tr class="<%= 'table-warning' if a.low_stock? %>">
               <td><%= a.nombre %><% if a.es_cable? %> <span class="badge text-bg-info">cable</span><% end %></td>
               <td><%= a.tipo %></td>
-              <td><%= a.categoria %></td>
               <td><%= a.cantidad_en_stock %></td>
               <td><%= a.stock_minimo %></td>
               <td><%= a.unidad_medida %></td>
@@ -55,7 +49,7 @@
             </tr>
           <% end %>
           <% if @articulos.empty? %>
-            <tr><td colspan="8" class="text-center text-secondary py-4">Sin artículos.</td></tr>
+            <tr><td colspan="7" class="text-center text-secondary py-4">Sin artículos.</td></tr>
           <% end %>
         </tbody>
       </table>

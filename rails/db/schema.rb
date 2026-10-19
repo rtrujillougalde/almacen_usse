@@ -10,11 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_122000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_19_124500) do
   create_table "articulos", primary_key: "id_articulo", id: :integer, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.column "almacen", "enum('oficina','uno','dos','tres','dormitorios')"
     t.float "cantidad_en_stock"
-    t.column "categoria", "enum('albañileria','aire_acondicionado','aislantes','almacen_dormitorios','alumbrado','baterias','c_d','cables','calentadores','canalizaciones','charolas','cinchos','conductor','contactos','contactos_regulados','control_almacen','control_acceso','datos','eléctrico','equipo_medición','equipo_protección','fibra_óptica','fuse_panel','fusibles','gasolina','general','herramienta','herrería','interruptores','kit_cursos','limpieza','miscelaneos','motores','papelería','pintura','planta_emergencia','plomeria','racks','referencia','registros','regletas','seguridad','soportes','tablaroca','tableros','tierras','tornilleria','zapatas')"
     t.boolean "es_cable", default: false
     t.string "nombre", limit: 100, null: false
     t.string "num_catalogo", limit: 100
@@ -22,7 +21,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_122000) do
     t.integer "proveedor"
     t.float "stock_minimo"
     t.column "tipo", "enum('material','herramienta')", null: false
-    t.column "ubicacion", "enum('nivel_1','nivel_2','planta_baja','estante_compras')"
+    t.column "ubicacion", "enum('nivel 1','nivel 1-aire acondicionado','nivel 2','planta baja','estante compras')"
     t.string "unidad_medida", limit: 50
     t.index ["proveedor"], name: "id_proveedor_idx"
   end

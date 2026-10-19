@@ -35,10 +35,6 @@
       <label class="form-label">Stock mínimo para alertas</label>
       <%= number_field_tag :stock_minimo, 0, class: "form-control", step: :any, min: 0, disabled: true %>
     </div>
-    <div class="col-md-4">
-      <label class="form-label">Categoría</label>
-      <%= select_tag :categoria, options_for_select(Articulo::CATEGORIAS.sort), class: "form-select", include_blank: true, disabled: true %>
-    </div>
     <div class="col-md-4 d-flex align-items-end">
       <div class="form-check mb-2">
         <%= check_box_tag :es_cable, "1", false,
