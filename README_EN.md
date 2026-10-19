@@ -131,7 +131,7 @@ Defines SQLAlchemy ORM models:
 - `Proyectos`
 - `StockPuntas`
 
-It also contains enums for categories, article types, and movement types.
+It also contains enums for article types and movement types.
 
 ### `src/data.py`
 Central data-access layer. It contains:
@@ -141,7 +141,7 @@ Central data-access layer. It contains:
 - PDF and Excel report generation
 
 ### `src/utils.py`
-Configures the MySQL connection and defines shared constants such as categories and units of measure.
+Configures the MySQL connection and defines shared constants such as units of measure.
 
 ### `src/p_entradas.py`
 UI for registering inventory entries, including new items and cable-type items.

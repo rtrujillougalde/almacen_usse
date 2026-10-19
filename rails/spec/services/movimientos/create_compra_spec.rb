@@ -10,7 +10,6 @@ RSpec.describe Movimientos::CreateCompra do
       tipo: "material",
       cantidad: 10,
       unidad_medida: "pza",
-      categoria: "tornilleria",
       stock_minimo: 2,
       es_cable: false,
       precio_unitario: 4.5
@@ -127,7 +126,6 @@ RSpec.describe Movimientos::CreateCompra do
       longitud: 33,
       color: "rojo",
       unidad_medida: "m",
-      categoria: "cables",
       precio_unitario: 8.0
     } ])
 
