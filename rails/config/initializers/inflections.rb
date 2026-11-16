@@ -13,4 +13,5 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "compra", "compras"
   inflect.irregular "salida", "salidas"
   inflect.irregular "reporte", "reportes"
+  inflect.irregular "usuario", "usuarios"
 end

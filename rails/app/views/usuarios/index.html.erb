@@ -1,0 +1,54 @@
+<% content_for :page_actions do %>
+  <%= link_to "Nuevo usuario", new_usuario_path, class: "btn btn-primary" %>
+<% end %>
+<%= render "shared/page_header", title: "Usuarios", subtitle: "Cuentas y roles de acceso" %>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-sm mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @usuarios.each do |u| %>
+            <tr class="<%= 'text-secondary' unless u.active? %>">
+              <td><%= u.full_name %></td>
+              <td><%= u.email %></td>
+              <td><%= User::ROLE_LABELS[u.role] %></td>
+              <td>
+                <% if u.active? %>
+                  <span class="badge text-bg-success">Activo</span>
+                <% else %>
+                  <span class="badge text-bg-secondary">Desactivado</span>
+                <% end %>
+              </td>
+              <td class="text-end text-nowrap">
+                <%= link_to "Editar", edit_usuario_path(u), class: "btn btn-sm btn-outline-secondary" %>
+                <% if u.active? %>
+                  <%= button_to "Desactivar", deactivate_usuario_path(u), method: :patch,
+                        form: { class: "d-inline" },
+                        class: "btn btn-sm btn-outline-danger",
+                        data: { turbo_confirm: "¿Desactivar a #{u.full_name}? Ya no podrá entrar." } %>
+                <% else %>
+                  <%= button_to "Reactivar", reactivate_usuario_path(u), method: :patch,
+                        form: { class: "d-inline" },
+                        class: "btn btn-sm btn-outline-success" %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+          <% if @usuarios.empty? %>
+            <tr><td colspan="5" class="text-center text-secondary py-4">No hay usuarios.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

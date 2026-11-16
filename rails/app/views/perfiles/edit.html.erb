@@ -1,0 +1,48 @@
+<%= render "shared/page_header", title: "Mi perfil", subtitle: @usuario.email %>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-4">
+    <%= form_with model: @usuario, url: perfil_path, method: :patch do |f| %>
+      <% if @usuario.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @usuario.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= f.label :first_name, "Nombre", class: "form-label" %>
+          <%= f.text_field :first_name, class: "form-control", required: true, maxlength: 100 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= f.label :last_name, "Apellido", class: "form-label" %>
+          <%= f.text_field :last_name, class: "form-control", required: true, maxlength: 100 %>
+        </div>
+      </div>
+
+      <hr class="my-4">
+      <p class="text-secondary small">Para cambiar tu contraseña, escribe la nueva. Para guardar cualquier cambio, escribe tu contraseña actual.</p>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= f.label :password, "Nueva contraseña", class: "form-label" %>
+          <%= f.password_field :password, class: "form-control", autocomplete: "new-password" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= f.label :password_confirmation, "Confirmar nueva contraseña", class: "form-label" %>
+          <%= f.password_field :password_confirmation, class: "form-control", autocomplete: "new-password" %>
+        </div>
+      </div>
+      <div class="mb-4" style="max-width: 50%;">
+        <%= f.label :current_password, "Contraseña actual", class: "form-label" %>
+        <%= f.password_field :current_password, class: "form-control", autocomplete: "current-password", required: true %>
+      </div>
+
+      <%= f.submit "Guardar", class: "btn btn-primary" %>
+    <% end %>
+  </div>
+</div>
