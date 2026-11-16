@@ -10,6 +10,16 @@ Rails.application.routes.draw do
   patch "proveedores/:id", to: "proveedores#update", as: :proveedor
   put "proveedores/:id", to: "proveedores#update"
 
+  resources :usuarios, only: %i[index new create edit update] do
+    member do
+      patch :deactivate
+      patch :reactivate
+    end
+  end
+
+  get "perfil", to: "perfiles#edit", as: :perfil
+  patch "perfil", to: "perfiles#update"
+
   resources :proyectos, only: %i[index create]
   resources :articulos, only: %i[edit update]
 

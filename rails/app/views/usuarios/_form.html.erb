@@ -1,0 +1,50 @@
+<%= form_with model: usuario, url: (usuario.persisted? ? usuario_path(usuario) : usuarios_path) do |f| %>
+  <% if usuario.errors.any? %>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <% usuario.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= f.label :first_name, "Nombre", class: "form-label" %>
+      <%= f.text_field :first_name, class: "form-control", required: true, maxlength: 100 %>
+    </div>
+    <div class="col-md-6 mb-3">
+      <%= f.label :last_name, "Apellido", class: "form-label" %>
+      <%= f.text_field :last_name, class: "form-control", required: true, maxlength: 100 %>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= f.label :email, "Correo electrónico", class: "form-label" %>
+      <%= f.email_field :email, class: "form-control", required: true, autocomplete: "off" %>
+    </div>
+    <div class="col-md-6 mb-3">
+      <%= f.label :role, "Rol", class: "form-label" %>
+      <%= f.select :role, User.roles.keys.map { |r| [ User::ROLE_LABELS[r], r ] }, {}, class: "form-select" %>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= f.label :password, "Contraseña", class: "form-label" %>
+      <%= f.password_field :password, class: "form-control", autocomplete: "new-password", required: usuario.new_record? %>
+      <% if usuario.persisted? %>
+        <div class="form-text">Déjala vacía para no cambiarla.</div>
+      <% end %>
+    </div>
+    <div class="col-md-6 mb-3">
+      <%= f.label :password_confirmation, "Confirmar contraseña", class: "form-label" %>
+      <%= f.password_field :password_confirmation, class: "form-control", autocomplete: "new-password", required: usuario.new_record? %>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit (usuario.persisted? ? "Guardar" : "Crear"), class: "btn btn-primary" %>
+    <%= link_to "Cancelar", usuarios_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

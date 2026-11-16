@@ -5,18 +5,12 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
 
   before_action :authenticate_user!, unless: :devise_controller?
-  before_action :configure_permitted_parameters, if: :devise_controller?
   layout :resolve_layout
 
   private
 
   def resolve_layout
     devise_controller? ? "devise" : "application"
-  end
-
-  def configure_permitted_parameters
-    devise_parameter_sanitizer.permit(:sign_in, keys: [ :username ])
-    devise_parameter_sanitizer.permit(:account_update, keys: [ :username, :role ])
   end
 
   def after_sign_in_path_for(resource)
