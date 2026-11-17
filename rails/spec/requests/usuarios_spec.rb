@@ -28,6 +28,14 @@ RSpec.describe "Usuarios admin", type: :request do
       expect(User.find_by(email: "ana@usse.local")).to be_operador
     end
 
+    it "stores the chosen system access" do
+      params[:user][:acceso] = "personal"
+
+      post usuarios_path, params: params
+
+      expect(User.find_by(email: "ana@usse.local").acceso).to eq("personal")
+    end
+
     it "rejects a missing name" do
       params[:user][:first_name] = ""
 
@@ -54,6 +62,14 @@ RSpec.describe "Usuarios admin", type: :request do
 
       expect(response).to redirect_to(edit_usuario_path(admin))
       expect(admin.reload).to be_admin
+    end
+
+    it "does not let an admin remove their own warehouse access" do
+      patch usuario_path(admin), params: { user: { first_name: admin.first_name, last_name: admin.last_name,
+                                                   email: admin.email, role: "admin", acceso: "personal" } }
+
+      expect(response).to redirect_to(edit_usuario_path(admin))
+      expect(admin.reload.acceso).to eq("ambos")
     end
   end
 

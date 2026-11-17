@@ -1,7 +1,8 @@
 users = [
-  { first_name: "Admin", last_name: "USSE", email: "admin@usse.local", role: :admin, password: "password" },
-  { first_name: "Operador", last_name: "USSE", email: "operador@usse.local", role: :operador, password: "password" },
-  { first_name: "Consulta", last_name: "USSE", email: "consulta@usse.local", role: :consulta, password: "password" }
+  { first_name: "Admin", last_name: "USSE", email: "admin@usse.local", role: :admin, password: "Great123" },
+  { first_name: "Operador", last_name: "USSE", email: "operador@usse.local", role: :operador, password: "Great123" },
+  { first_name: "Consulta", last_name: "USSE", email: "consulta@usse.local", role: :consulta, password: "Great123" },
+  { first_name: "Regina", last_name: "Trujillo", email: "regina@trujillo.local", role: :admin, password: "Great123" }
 ]
 
 users.each do |attrs|
@@ -14,4 +15,4 @@ users.each do |attrs|
   user.save!
 end
 
-puts "Seeded users: #{User.pluck(:email).join(', ')} (password: password)"
+puts "Seeded users: #{User.pluck(:email).join(', ')} "

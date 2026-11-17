@@ -41,6 +41,26 @@ body {
   min-width: 0;
 }
 
+.row-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.row-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.row-menu[open] > div {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+  min-width: 11rem;
+}
+
+.table-responsive:has(.row-menu[open]) {
+  overflow: visible;
+}
+
 .badge-usse {
   background-color: var(--usse-brand);
   color: #fff;

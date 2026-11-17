@@ -13,14 +13,64 @@ RSpec.describe "Authentication and roles", type: :request do
 
     it "signs in with email and password" do
       post user_session_path, params: { user: { email: "boss@usse.local", password: "password" } }
-      expect(response).to redirect_to(inventario_path)
+      expect(response).to redirect_to(root_path)
       follow_redirect!
       expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Control de personal: Querétaro")
+      expect(response.body).to include("Sistema de almacén")
     end
 
     it "does not sign in with the wrong password" do
       post user_session_path, params: { user: { email: "boss@usse.local", password: "wrong" } }
       expect(response).to have_http_status(:unprocessable_content)
+    end
+  end
+
+  describe "post-login chooser" do
+    it "sends unsigned visitors to sign in" do
+      get control_personal_path
+      expect(response).to redirect_to(new_user_session_path)
+    end
+
+    it "opens info general from the personnel button" do
+      sign_in_as(:admin)
+      get control_personal_path
+      expect(response).to redirect_to(trabajadores_path)
+      follow_redirect!
+      expect(response.body).to include("Info general")
+      expect(response.body).to include("Nuevo trabajador")
+    end
+  end
+
+  describe "system access" do
+    it "shows only the warehouse button for almacen access" do
+      sign_in create(:user, :admin, :solo_almacen)
+
+      get root_path
+      expect(response.body).to include("Sistema de almacén")
+      expect(response.body).not_to include("Control de personal: Querétaro")
+
+      get control_personal_path
+      expect(response).to redirect_to(inventario_path)
+    end
+
+    it "shows only the personnel button for personal access" do
+      sign_in create(:user, :consulta, :solo_personal)
+
+      get root_path
+      expect(response.body).to include("Control de personal: Querétaro")
+      expect(response.body).not_to include("Sistema de almacén")
+
+      get inventario_path
+      expect(response).to redirect_to(control_personal_path)
+    end
+
+    it "shows both buttons when access is ambos" do
+      sign_in create(:user, :operador, acceso: :ambos)
+
+      get root_path
+      expect(response.body).to include("Control de personal: Querétaro")
+      expect(response.body).to include("Sistema de almacén")
     end
   end
 

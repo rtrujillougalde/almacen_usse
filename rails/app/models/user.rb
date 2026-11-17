@@ -8,10 +8,22 @@ class User < ApplicationRecord
     consulta: "consulta"
   }, validate: true
 
+  enum :acceso, {
+    almacen: "almacen",
+    personal: "personal",
+    ambos: "ambos"
+  }, default: :ambos, validate: true
+
   ROLE_LABELS = {
     "admin" => "Administrador",
     "operador" => "Operador",
     "consulta" => "Consulta"
+  }.freeze
+
+  ACCESO_LABELS = {
+    "almacen" => "Sistema de almacén",
+    "personal" => "Control de personal: Querétaro",
+    "ambos" => "Ambos"
   }.freeze
 
   STAFF_PAGES = %w[inventario entradas compras salidas proyectos reportes proveedores].freeze
@@ -46,11 +58,17 @@ class User < ApplicationRecord
     [ first_name, last_name ].compact_blank.join(" ")
   end
 
+  def enters?(system)
+    ambos? || acceso == system.to_s
+  end
+
   def can_access?(page)
-    ROLE_PAGES.fetch(role, []).include?(page.to_s)
+    enters?(:almacen) && ROLE_PAGES.fetch(role, []).include?(page.to_s)
   end
 
   def allowed_pages
+    return [] unless enters?(:almacen)
+
     ROLE_PAGES.fetch(role, [])
   end
 

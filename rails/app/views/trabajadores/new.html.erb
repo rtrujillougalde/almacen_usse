@@ -1,0 +1,7 @@
+<% content_for :title, "Nuevo trabajador" %>
+<%= render "shared/page_header", title: "Nuevo trabajador" %>
+<div class="card shadow-sm border-0">
+  <div class="card-body p-4">
+    <%= render "form", trabajador: @trabajador %>
+  </div>
+</div>

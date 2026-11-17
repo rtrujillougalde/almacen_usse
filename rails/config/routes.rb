@@ -63,6 +63,14 @@ Rails.application.routes.draw do
   end
 
   get "inventario", to: "inventario#index", as: :inventario
+  get "control-de-personal", to: "control_personal#index", as: :control_personal
+  resources :trabajadores, only: %i[index create]
+  get "trabajadores/new", to: "trabajadores#new", as: :new_trabajador
+  get "trabajadores/:trabajador_id/documentos", to: "documentos#show", as: :trabajador_documentos
+  patch "trabajadores/:trabajador_id/documentos", to: "documentos#update"
+  get "trabajadores/:id/edit", to: "trabajadores#edit", as: :edit_trabajador
+  patch "trabajadores/:id", to: "trabajadores#update", as: :trabajador
+  put "trabajadores/:id", to: "trabajadores#update"
 
-  root "inventario#index"
+  root "inicio#index"
 end
