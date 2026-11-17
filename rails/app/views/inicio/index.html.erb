@@ -1,0 +1,10 @@
+<% content_for :title, "Inicio" %>
+
+<div class="d-grid gap-3">
+  <% if current_user.enters?(:personal) %>
+    <%= link_to "Control de personal: Querétaro", control_personal_path, class: "btn btn-primary btn-lg" %>
+  <% end %>
+  <% if current_user.enters?(:almacen) %>
+    <%= link_to "Sistema de almacén", inventario_path, class: "btn btn-outline-primary btn-lg" %>
+  <% end %>
+</div>

@@ -13,10 +13,8 @@ class ApplicationController < ActionController::Base
     devise_controller? ? "devise" : "application"
   end
 
-  def after_sign_in_path_for(resource)
-    page = resource.first_allowed_page
-    path_helper = User::PAGE_PATHS[page]
-    path_helper ? send(path_helper) : root_path
+  def after_sign_in_path_for(_resource)
+    root_path
   end
 
   def after_sign_out_path_for(_resource_or_scope)

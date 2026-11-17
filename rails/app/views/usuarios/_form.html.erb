@@ -31,6 +31,12 @@
   </div>
   <div class="row">
     <div class="col-md-6 mb-3">
+      <%= f.label :acceso, "Acceso", class: "form-label" %>
+      <%= f.select :acceso, User.accesos.keys.map { |a| [ User::ACCESO_LABELS[a], a ] }, {}, class: "form-select" %>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
       <%= f.label :password, "Contraseña", class: "form-label" %>
       <%= f.password_field :password, class: "form-control", autocomplete: "new-password", required: usuario.new_record? %>
       <% if usuario.persisted? %>

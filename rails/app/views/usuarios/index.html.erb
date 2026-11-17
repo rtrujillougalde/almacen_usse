@@ -12,6 +12,7 @@
             <th>Nombre</th>
             <th>Correo</th>
             <th>Rol</th>
+            <th>Acceso</th>
             <th>Estado</th>
             <th></th>
           </tr>
@@ -22,6 +23,7 @@
               <td><%= u.full_name %></td>
               <td><%= u.email %></td>
               <td><%= User::ROLE_LABELS[u.role] %></td>
+              <td><%= User::ACCESO_LABELS[u.acceso] %></td>
               <td>
                 <% if u.active? %>
                   <span class="badge text-bg-success">Activo</span>
@@ -45,7 +47,7 @@
             </tr>
           <% end %>
           <% if @usuarios.empty? %>
-            <tr><td colspan="5" class="text-center text-secondary py-4">No hay usuarios.</td></tr>
+            <tr><td colspan="6" class="text-center text-secondary py-4">No hay usuarios.</td></tr>
           <% end %>
         </tbody>
       </table>

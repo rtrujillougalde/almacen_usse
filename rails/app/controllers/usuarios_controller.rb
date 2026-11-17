@@ -30,6 +30,10 @@ class UsuariosController < ApplicationController
       return redirect_to edit_usuario_path(@usuario), alert: "No puedes quitarte a ti mismo el rol de administrador."
     end
 
+    if self_almacen_lockout?(attrs[:acceso])
+      return redirect_to edit_usuario_path(@usuario), alert: "No puedes quitarte el acceso al sistema de almacén."
+    end
+
     if @usuario.update(attrs)
       redirect_to usuarios_path, notice: "Usuario actualizado."
     else
@@ -65,7 +69,11 @@ class UsuariosController < ApplicationController
     @usuario == current_user && new_role.present? && new_role != "admin"
   end
 
+  def self_almacen_lockout?(new_acceso)
+    @usuario == current_user && new_acceso.present? && new_acceso == "personal"
+  end
+
   def usuario_params
-    params.require(:user).permit(:first_name, :last_name, :email, :role, :password, :password_confirmation)
+    params.require(:user).permit(:first_name, :last_name, :email, :role, :acceso, :password, :password_confirmation)
   end
 end

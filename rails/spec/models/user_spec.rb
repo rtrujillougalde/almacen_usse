@@ -19,6 +19,22 @@ RSpec.describe User do
       expect(operador).not_to be_can_access("usuarios")
     end
 
+    it "blocks warehouse pages without almacen access" do
+      user = build(:user, :admin, :solo_personal)
+
+      expect(user.enters?(:personal)).to be(true)
+      expect(user.enters?(:almacen)).to be(false)
+      expect(user).not_to be_can_access("inventario")
+      expect(user.allowed_pages).to eq([])
+    end
+
+    it "lets ambos enter both systems" do
+      user = build(:user, acceso: :ambos)
+
+      expect(user.enters?(:almacen)).to be(true)
+      expect(user.enters?(:personal)).to be(true)
+    end
+
     it "limits consulta to inventario and reportes" do
       user = build(:user, :consulta)
 

@@ -63,6 +63,7 @@ Rails.application.routes.draw do
   end
 
   get "inventario", to: "inventario#index", as: :inventario
+  get "control-de-personal", to: "control_personal#index", as: :control_personal
 
-  root "inventario#index"
+  root "inicio#index"
 end
