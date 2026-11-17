@@ -14,4 +14,6 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "salida", "salidas"
   inflect.irregular "reporte", "reportes"
   inflect.irregular "usuario", "usuarios"
+  inflect.irregular "documento", "documentos"
+  inflect.irregular "epp_movimiento", "epp_movimientos"
 end
