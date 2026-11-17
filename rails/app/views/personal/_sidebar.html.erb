@@ -1,0 +1,26 @@
+<aside class="app-sidebar text-white p-3 d-flex flex-column">
+  <div class="d-none d-md-flex align-items-center gap-2 mb-4 px-1">
+    <%= image_tag "logo_usse_2.jpg", alt: "USSE", class: "app-logo rounded bg-white p-1" %>
+    <div>
+      <div class="fw-semibold lh-sm">Control de personal</div>
+      <small class="text-white-50">Querétaro</small>
+    </div>
+  </div>
+
+  <nav class="nav nav-pills flex-column gap-1 flex-grow-1" aria-label="Secciones">
+    <%= link_to "Info general", trabajadores_path,
+          class: "nav-link #{'active' if %w[trabajadores documentos].include?(controller_name)}" %>
+  </nav>
+
+  <% if user_signed_in? %>
+    <div class="mt-4 pt-3 border-top border-light border-opacity-25">
+      <div class="small text-white-50 mb-2 px-1">
+        <%= current_user.full_name %>
+        <span class="badge text-bg-light text-dark"><%= User::ROLE_LABELS[current_user.role] %></span>
+      </div>
+      <%= link_to "Menú principal", root_path, class: "btn btn-outline-light btn-sm w-100 mb-2" %>
+      <%= button_to "Cerrar sesión", destroy_user_session_path, method: :delete,
+            class: "btn btn-outline-light btn-sm w-100" %>
+    </div>
+  <% end %>
+</aside>

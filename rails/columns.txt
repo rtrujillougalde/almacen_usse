@@ -1,0 +1,44 @@
+Tabla1: trabajadores_datos
+id primary_key, requerido
+activo, bool, requerido, default true
+nombre, texto, requerido
+cel_personal, texto
+cel_emergencia, texto
+id_usse, int, requerido, unico, consecutivo que empieza en 400 (lo asigna la app)
+curp, texto
+puesto_magnet, texto
+especialidad_obra, texto
+puesto_imss, texto
+credencial_ingreso, texto
+rfc, texto
+antidoping, enum(apto, no_apto), opcional (puede estar vacio hasta tener resultado)
+tipo_sangre, enum(O+, O-, A+, A-, B+, B-, AB+, AB-), PENDIENTE: confirmar si es requerido
+grupo_id, foreign key id del grupo en la tabla grupos, requerido
+
+Tabla2: grupos
+id primary_key, requerido
+nombre, texto, requerido, unico (ej. A, B, C; se pueden agregar mas)
+
+Tabla3: documentos (esta tabla contiene columnas con documentos como pdf o png)
+id primary_key, requerido
+id_trabajador, foreign key id del trabajador que esta en la tabla trabajadores_datos, requerido, unico (una fila por trabajador)
+ine, archivo, opcional
+rfc, archivo, opcional
+nss, archivo, opcional
+csf, archivo, opcional
+certificado_medico, archivo, opcional
+antidoping, archivo, opcional
+dc3, archivo, opcional
+
+Tabla4: epp_movimientos
+id primary_key, requerido
+id_trabajador, foreign key id del trabajador que esta en la tabla trabajadores_datos, requerido
+tipo_de_movimiento, enum(entrega primera vez, reemplazo por desgaste, reemplazo por perdida), requerido
+casco, bool, default false
+guantes, bool, default false
+barbiquejo, bool, default false
+lentes, bool, default false
+botas, bool, default false
+chaleco, bool, default false
+doc_firma, archivo, opcional
+fecha_y_hora, datetime, requerido

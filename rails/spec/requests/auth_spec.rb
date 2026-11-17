@@ -32,11 +32,13 @@ RSpec.describe "Authentication and roles", type: :request do
       expect(response).to redirect_to(new_user_session_path)
     end
 
-    it "shows the personnel stub" do
+    it "opens info general from the personnel button" do
       sign_in_as(:admin)
       get control_personal_path
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include("building...")
+      expect(response).to redirect_to(trabajadores_path)
+      follow_redirect!
+      expect(response.body).to include("Info general")
+      expect(response.body).to include("Nuevo trabajador")
     end
   end
 

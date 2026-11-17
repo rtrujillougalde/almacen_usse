@@ -1,0 +1,90 @@
+<%= form_with model: trabajador, url: (trabajador.persisted? ? trabajador_path(trabajador) : trabajadores_path) do |f| %>
+  <% if trabajador.errors.any? %>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <% trabajador.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if trabajador.persisted? %>
+    <p class="text-secondary">ID USSE: <%= trabajador.id_usse %></p>
+  <% end %>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= f.label :nombre, "Nombre", class: "form-label" %>
+      <%= f.text_field :nombre, class: "form-control", required: true, maxlength: 150 %>
+    </div>
+    <div class="col-md-6 mb-3">
+      <%= label_tag "trabajador_grupo_nombre", "Grupo", class: "form-label" %>
+      <%= text_field_tag "trabajador[grupo_nombre]",
+            params.dig(:trabajador, :grupo_nombre).presence || trabajador.grupo&.nombre,
+            class: "form-control", required: true, maxlength: 50, id: "trabajador_grupo_nombre" %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= f.label :cel_personal, "Celular personal", class: "form-label" %>
+      <%= f.telephone_field :cel_personal, class: "form-control", maxlength: 45 %>
+    </div>
+    <div class="col-md-6 mb-3">
+      <%= f.label :cel_emergencia, "Celular de emergencia", class: "form-label" %>
+      <%= f.telephone_field :cel_emergencia, class: "form-control", maxlength: 45 %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= f.label :curp, "CURP", class: "form-label" %>
+      <%= f.text_field :curp, class: "form-control", maxlength: 18 %>
+    </div>
+    <div class="col-md-6 mb-3">
+      <%= f.label :rfc, "RFC", class: "form-label" %>
+      <%= f.text_field :rfc, class: "form-control", maxlength: 13 %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <%= f.label :puesto_magnet, "Puesto Magnet", class: "form-label" %>
+      <%= f.text_field :puesto_magnet, class: "form-control", maxlength: 100 %>
+    </div>
+    <div class="col-md-4 mb-3">
+      <%= f.label :especialidad_obra, "Especialidad de obra", class: "form-label" %>
+      <%= f.text_field :especialidad_obra, class: "form-control", maxlength: 100 %>
+    </div>
+    <div class="col-md-4 mb-3">
+      <%= f.label :puesto_imss, "Puesto IMSS", class: "form-label" %>
+      <%= f.text_field :puesto_imss, class: "form-control", maxlength: 100 %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <%= f.label :credencial_ingreso, "Credencial de ingreso", class: "form-label" %>
+      <%= f.text_field :credencial_ingreso, class: "form-control", maxlength: 100 %>
+    </div>
+    <div class="col-md-4 mb-3">
+      <%= f.label :antidoping, "Antidoping", class: "form-label" %>
+      <%= f.select :antidoping, [ [ "Apto", "apto" ], [ "No apto", "no_apto" ] ], { include_blank: true }, class: "form-select" %>
+    </div>
+    <div class="col-md-4 mb-3">
+      <%= f.label :tipo_sangre, "Tipo de sangre", class: "form-label" %>
+      <%= f.select :tipo_sangre, Trabajador.tipo_sangres.map { |key, label| [ label, key ] }, { include_blank: true }, class: "form-select" %>
+    </div>
+  </div>
+
+  <div class="form-check mb-4">
+    <%= f.check_box :activo, class: "form-check-input" %>
+    <%= f.label :activo, "Activo", class: "form-check-label" %>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit (trabajador.persisted? ? "Guardar" : "Crear"), class: "btn btn-primary" %>
+    <%= link_to "Cancelar", trabajadores_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

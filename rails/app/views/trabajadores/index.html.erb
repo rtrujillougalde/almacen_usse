@@ -1,0 +1,71 @@
+<% content_for :title, "Info general" %>
+<% content_for :page_actions do %>
+  <%= link_to "Nuevo trabajador", new_trabajador_path, class: "btn btn-primary" %>
+<% end %>
+<%= render "shared/page_header", title: "Info general", subtitle: "Datos de los trabajadores" %>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-sm mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>ID USSE</th>
+            <th>Nombre</th>
+            <th>Grupo</th>
+            <th>Celular</th>
+            <th>Emergencia</th>
+            <th>CURP</th>
+            <th>Puesto Magnet</th>
+            <th>Especialidad</th>
+            <th>Puesto IMSS</th>
+            <th>Credencial</th>
+            <th>RFC</th>
+            <th>Antidoping</th>
+            <th>Tipo de sangre</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @trabajadores.each do |trabajador| %>
+            <tr class="<%= 'text-secondary' unless trabajador.activo? %>">
+              <td><%= trabajador.id_usse %></td>
+              <td><%= trabajador.nombre %></td>
+              <td><%= trabajador.grupo.nombre %></td>
+              <td><%= trabajador.cel_personal %></td>
+              <td><%= trabajador.cel_emergencia %></td>
+              <td><%= trabajador.curp %></td>
+              <td><%= trabajador.puesto_magnet %></td>
+              <td><%= trabajador.especialidad_obra %></td>
+              <td><%= trabajador.puesto_imss %></td>
+              <td><%= trabajador.credencial_ingreso %></td>
+              <td><%= trabajador.rfc %></td>
+              <td><%= { "apto" => "Apto", "no_apto" => "No apto" }[trabajador.antidoping] %></td>
+              <td><%= Trabajador.tipo_sangres[trabajador.tipo_sangre] %></td>
+              <td>
+                <% if trabajador.activo? %>
+                  <span class="badge text-bg-success">Activo</span>
+                <% else %>
+                  <span class="badge text-bg-secondary">Inactivo</span>
+                <% end %>
+              </td>
+              <td class="text-end text-nowrap position-relative">
+                <details class="row-menu d-inline-block text-start">
+                  <summary class="btn btn-sm btn-outline-secondary px-2" aria-label="Opciones">&#8942;</summary>
+                  <div class="border rounded bg-white shadow-sm mt-1 py-1">
+                    <%= link_to "Editar", edit_trabajador_path(trabajador), class: "dropdown-item" %>
+                    <%= link_to "Ver documentos", trabajador_documentos_path(trabajador), class: "dropdown-item" %>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          <% end %>
+          <% if @trabajadores.empty? %>
+            <tr><td colspan="15" class="text-center text-secondary py-4">No hay trabajadores.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

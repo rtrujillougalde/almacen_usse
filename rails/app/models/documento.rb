@@ -2,6 +2,15 @@ class Documento < ApplicationRecord
   self.record_timestamps = false
 
   FILE_FIELDS = %i[ine rfc nss csf certificado_medico antidoping dc3].freeze
+  LABELS = {
+    "ine" => "INE",
+    "rfc" => "RFC",
+    "nss" => "NSS",
+    "csf" => "CSF",
+    "certificado_medico" => "Certificado médico",
+    "antidoping" => "Antidoping",
+    "dc3" => "DC3"
+  }.freeze
   ALLOWED_CONTENT_TYPES = %w[application/pdf image/png].freeze
 
   belongs_to :trabajador, foreign_key: :id_trabajador, inverse_of: :documento
